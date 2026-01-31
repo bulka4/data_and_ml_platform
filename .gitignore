@@ -1,0 +1,11 @@
+interacting.aks.Dockerfile
+terraform.tfvars
+*.tfstate
+*.tfstate.lock.info
+*.tfstate.backup
+*.tfplan
+*.hcl
+.terraform
+values.yaml
+test.py
+test.yml

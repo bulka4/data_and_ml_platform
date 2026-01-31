@@ -1,0 +1,40 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "hive-metastore.fullname" . }}
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: {{ include "hive-metastore.fullname" . }}
+  template:
+    metadata:
+      labels:
+        app: {{ include "hive-metastore.fullname" . }}
+    spec:
+      # Get a secret with credentials for authentication to the ACR.
+      imagePullSecrets:
+        - name: {{ .Values.acrSecret.secretName }}
+      containers:
+        - name: hive-metastore
+          image: "{{ .Values.hive.image.repository }}:{{ .Values.hive.image.tag }}"
+          imagePullPolicy: {{ .Values.hive.image.pullPolicy }}
+          command: ["hive"]
+          args: ["--service", "metastore"]
+          ports:
+            - containerPort: {{ .Values.hive.metastorePort }}
+          env:
+	        # Password to the PostgreSQL metadata db from the secret
+            - name: DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: hive-metastore-db-secret
+                  key: hive-password
+          # Mount the hive-site.xml created in the ConfigMap
+          volumeMounts:
+            - name: spark-conf
+              mountPath: /opt/hive/conf
+      volumes:
+        - name: spark-conf
+          configMap:
+            name: spark-conf

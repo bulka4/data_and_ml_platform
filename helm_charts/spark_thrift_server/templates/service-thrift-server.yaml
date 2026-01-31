@@ -1,0 +1,15 @@
+# Service for exposing the Thrift Server.
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: spark-thrift
+  namespace: spark
+spec:
+  selector:
+    app: spark-thrift-server
+  ports:
+  - name: thrift
+    port: 10000
+    targetPort: 10000
+  type: ClusterIP

@@ -1,0 +1,74 @@
+# In pods running the Thrift Server and Hive Metastore, in the `/opt/spark/conf` folder we need to have configuration files:
+# - `hive-site.xml`
+
+# For the Thrift Server, we need additionally in the same folder:
+# - `spark-defaults.conf`
+
+# We create those config files using a ConfigMap and we will mount them into the pods running the Thrift Server and Hive Metastore.
+
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: spark-conf
+data:
+  hive-site.xml: |
+    <configuration>
+
+      <property>
+        <name>javax.jdo.option.ConnectionURL</name>
+        <value>
+          jdbc:postgresql://{{ .Release.Name }}-postgresql:5432/{{ .Values.hive.database.name }}
+        </value>
+      </property>
+
+      <property>
+        <name>javax.jdo.option.ConnectionDriverName</name>
+        <value>org.postgresql.Driver</value>
+      </property>
+
+      <property>
+        <name>javax.jdo.option.ConnectionUserName</name>
+        <value>{{ .Values.hive.database.user }}</value>
+      </property>
+
+      <property>
+        <name>javax.jdo.option.ConnectionPassword</name>
+        <value>${DB_PASSWORD}</value>
+      </property>
+
+      <property>
+        <name>hive.metastore.uris</name>
+        <value>
+          thrift://{{ include "hive-metastore.fullname" . }}:{{ .Values.hive.metastorePort }}
+        </value>
+      </property>
+
+      <property>
+        <name>datanucleus.autoCreateSchema</name>
+        <value>true</value>
+      </property>
+
+      <property>
+        <name>hive.metastore.schema.verification</name>
+        <value>false</value>
+      </property>
+
+    </configuration>
+    
+spark-defaults.conf: |
+	# Use Hive Metastore (not the in-memory catalog)
+	spark.sql.catalogImplementation=hive
+	
+	# Set where managed table data is stored (below is an Azure Storage Account URL)
+	spark.sql.warehouse.dir=wasb://{{ .Values.spark.containerName }}@${{ .Values.spark.storageAccountName }}.blob.core.windows.net
+	
+	# Configs for authentication to Azure Storage Account (to be able to read and save data)
+	spark.hadoop.fs.azure.account.auth.type.${MY_ACCOUNT}.dfs.core.windows.net=OAuth
+	
+	spark.hadoop.fs.azure.account.oauth.provider.type.${MY_ACCOUNT}.dfs.core.windows.net=org.apache.hadoop.fs.azurebfs.oauth2.ClientCredsTokenProvider
+	
+	spark.hadoop.fs.azure.account.oauth2.client.id.${MY_ACCOUNT}.dfs.core.windows.net=${CLIENT_ID}
+	
+	spark.hadoop.fs.azure.account.oauth2.client.secret.${MY_ACCOUNT}.dfs.core.windows.net=${CLIENT_SECRET}
+	
+	spark.hadoop.fs.azure.account.oauth2.client.endpoint.${MY_ACCOUNT}.dfs.core.windows.net=https://login.microsoftonline.com/${TENANT_ID}/oauth2/token

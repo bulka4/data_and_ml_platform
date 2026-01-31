@@ -1,0 +1,35 @@
+# Variables for Spark Thrift Server
+spark:
+  # URL of the Spark Docker image from a container registry
+  sparkImageUrl: ${spark_image_name}
+  # Storage Account and container for storing data used by Spark
+  storageAccountName: ${sa_name}
+  containerName: ${sa_container_name}
+
+# Variables for Hive Metastore
+hive:
+  image:
+    repository: apache/hive
+    tag: 3.1.3
+    pullPolicy: IfNotPresent
+  metastorePort: 9083
+  # Name of the database in PostgreSQL db with metadata and name of the user who is the owner of that database
+  database:
+    name: hive
+    user: hive
+
+# Variables for PostgreSQL which will be used as Hive Metastore metadata db
+postgresql:
+  auth:
+    username: hive # Set up the POSTGRES_USER env var (user who is an owner of the created database)
+    database: hive # Set up the POSTGRES_DB env var (name of the created database)
+    # Set up passwords from the secret
+    existingSecret: hive-metastore-db-secret # Name of the secret
+    secretKeys:
+      adminPasswordKey: postgres-password # Set up POSTGRES_POSTGRES_PASSWORD env var (password for the `postgres` superuser (admin))
+      userPasswordKey: hive-password # Set up POSTGRES_PASSWORD env var (password for the created user)
+      
+
+# Variables related to the ACR where we keep Docker images which will be deployed in pods
+acrSecret:
+	secretName: acr-secret

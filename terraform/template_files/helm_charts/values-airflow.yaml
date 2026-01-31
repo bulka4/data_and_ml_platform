@@ -1,0 +1,65 @@
+executor: KubernetesExecutor
+
+airflow:
+  image:
+    repository: ${acr_url}/${airflow_image_name}
+    tag: ${airflow_image_tag}
+  config:
+    AIRFLOW__CORE__LOAD_EXAMPLES: "false"
+    AIRFLOW__KUBERNETES__NAMESPACE: ${airflow_kubernetes_namespace}
+    # Saving logs to Azure Storage Account
+    AIRFLOW__LOGGING__REMOTE_LOGGING: "True"
+    AIRFLOW__LOGGING__REMOTE_BASE_LOG_FOLDER: "wasb://${airflow_logs_container_name}@${airflow_logs_sa_name}.blob.core.windows.net"
+    AIRFLOW__LOGGING__REMOTE_LOG_CONN_ID: "azure_blob" # ID of the connection used for accessing Azure Storage Account for saving Airflow logs
+
+dags:
+  # Use git-sync to pull code from a repo with Airflow tasks to run and mount it into pods created by Airflow.
+  # Pulled code will be available under /opt/airflow/dags path.
+  gitSync:
+    enabled: true
+    repo: ${repo_url}  # https://github.com/your-org/airflow-dags.git
+    branch: ${branch}
+    subPath: ${sub_path}
+    persistence:
+      enabled: true
+      existingClaim: airflow-dags-pvc
+
+# Create a PostgreSQL for Airflow metadata
+postgresql:
+  enabled: true
+
+
+# Use the below configuration if we use an external PostgreSQL db, not the one created in this chart by setting
+# postgresql.enabled = true in this file.
+# data:
+#   # Use the secret with the connection string to Postgres which will be used by Airflow to connect.
+#   metadataSecretName: airflow-postgres
+  
+# Connection for accessing Azure Storage Account for saving Airflow logs. It uses client ID and password of a Service Principal.
+# Values are taken from a Kubernetes secret.
+extraConnections:
+  - id: azure_blob
+    type: wasb
+    login: 
+		  secretKeyRef:
+        name: ${storage_account_secret}
+        key: client_id
+    password:
+	    secretKeyRef:
+        name: ${storage_account_secret}
+        key: client_secret
+    extra: |
+      {
+        "tenant_id": "{{ .Values.secrets.tenant_id }}",
+        "account_name": "{{ .Values.secrets.account_name }}"
+      }
+      
+secrets:
+  tenant_id:
+    secretKeyRef:
+      name: ${storage_account_secret}
+      key: tenant_id
+  account_name:
+    secretKeyRef:
+      name: ${storage_account_secret}
+      key: account_name

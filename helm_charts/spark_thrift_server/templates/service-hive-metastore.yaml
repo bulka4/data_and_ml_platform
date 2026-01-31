@@ -1,0 +1,12 @@
+# Service for exposing Hive Metastore
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "hive-metastore.fullname" . }}
+spec:
+  selector:
+    app: {{ include "hive-metastore.fullname" . }}
+  ports:
+    - port: {{ .Values.hive.metastorePort }}
+      targetPort: {{ .Values.hive.metastorePort }}

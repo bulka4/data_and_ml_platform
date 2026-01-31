@@ -1,0 +1,51 @@
+# Job for running a MLflow project.
+
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ include "mlflow-job.fullname" . }} # Unique name for the Job using the Chart name and Release name
+  namespace: {{ .Values.namespace }}
+spec:
+  ttlSecondsAfterFinished: 3600
+  backoffLimit: 2
+  template:
+    spec:
+      # Service Account used for reading a secret for accessing an image from ACR.
+      serviceAccountName: {{ .Values.serviceAccountName }}
+      
+      volumes:
+      - name: workspace
+        persistentVolumeClaim:
+          claimName: {{ .Values.pvc.name }}
+      
+      # Init container which will run git-sync
+      initContainers:
+        - name: git-sync
+          image: registry.k8s.io/git-sync/git-sync:v4.0.0
+          env:
+            - name: GIT_SYNC_REPO
+              value: https://github.com/my-org/my-repo.git
+            - name: GIT_SYNC_ONE_TIME
+              value: "true"
+            - name: GIT_SYNC_ROOT
+              value: /workspace
+          volumeMounts:
+            - name: workspace
+              mountPath: /workspace
+              
+      containers:
+	      - name: mlflow-job
+	        image: {{ .Values.image }}
+	        # Command to run a MLflow project
+	        command: ["sh", "-c"]
+	        args: 
+	          - {{ .Values.command }}
+	        env:
+	        # Set up MLFLOW_TRACKING_URI env variable indicating URI of the Tracking Server to connect to.
+	        - name: MLFLOW_TRACKING_URI
+	          value: {{ .Values.mlflowTrackingUri }}
+	        volumeMounts:
+		        # Mount a volume with MLflow project script pulled from the repo by git-sync
+		        - name: workspace
+		          mountPath: /mnt/mlprojects
+      restartPolicy: Never

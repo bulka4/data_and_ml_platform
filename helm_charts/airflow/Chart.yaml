@@ -1,0 +1,9 @@
+apiVersion: v2
+name: Airflow
+description: Helm chart for deploying Airflow
+version: 0.1.0
+
+dependencies:
+  - name: airflow
+    version: 1.13.0   
+    repository: https://airflow.apache.org

@@ -1,0 +1,14 @@
+# This is a PVC used to store code pulled from a repo by git-sync.
+
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: airflow-dags-pvc
+  namespace: airflow
+spec:
+  accessModes:
+    - ReadWriteOnce
+  storageClassName: managed-csi  # Use Azure disk for data storage
+  resources:
+    requests:
+      storage: 5Gi

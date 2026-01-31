@@ -1,0 +1,84 @@
+# Deployment for running MLflow Tracking Server.
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mlflow-server
+  namespace: {{ .Values.namespace }}
+  labels:
+    app: mlflow
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: mlflow
+  template:
+    metadata:
+      labels:
+        app: mlflow
+    spec:
+      # Get a secret with value for authentication to the ACR.
+      imagePullSecrets:
+        - name: {{ .Values.acr.secretName }}
+      containers:
+      - name: mlflow
+        image: "{{ .Values.acr.url }}/{{ .Values.acr.trackingServerImageName }}"
+        ports:
+        - containerPort: 5000
+        env:
+        # Create environment variables with values from the secret created as well in this chart. They will be used by the
+        # MLflow Tracking Server for authentication when connecting to the artifact store (Storage Account) and backend store (MySQL).
+        - name: STORAGE_ACCOUNT_ACCESS_KEY
+          valueFrom:
+            secretKeyRef:
+              name: {{ .Values.storageAccount.secretName }}
+              key: {{ .Values.storageAccount.accessKeySecretKey }}
+        - name: STORAGE_ACCOUNT_NAME
+          value: {{ .Values.storageAccount.name }}
+
+        - name: MYSQL_USERNAME
+          value: {{ .Values.mysql.auth.username }}
+        - name: MYSQL_USER_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: {{ .Values.mysql.auth.secretName }}
+              key: {{ .Values.mysql.auth.userPasswordSecretKey }}
+        - name: MYSQL_SERVER_DNS_NAME
+          value: {{ .Values.mysql.fullnameOverride  }}.{{ .Values.namespace }}.svc.cluster.local
+        - name: MYSQL_DATABASE_NAME
+          value: {{ .Values.mysql.auth.database }}
+        # - name: AZURE_STORAGE_CONNECTION_STRING
+        #   valueFrom:
+        #     secretKeyRef:
+        #       name: {{ .Values.mlflow.trackingServerSecretName }}
+        #       key: AZURE_STORAGE_CONNECTION_STRING
+        # - name: DB_URI
+        #   valueFrom:
+        #     secretKeyRef:
+        #       name: {{ .Values.mlflow.trackingServerSecretName }}
+        #       key: DB_URI
+
+        # Run the command to start the Tracking Server
+        command: ["/bin/sh", "-c"]
+        args:
+          - |
+            export DB_URI="mysql://${MYSQL_USERNAME}:${MYSQL_USER_PASSWORD}@${MYSQL_SERVER_DNS_NAME}:3306/${MYSQL_DATABASE_NAME}"
+            export AZURE_STORAGE_CONNECTION_STRING="DefaultEndpointsProtocol=https;AccountName=${STORAGE_ACCOUNT_NAME};AccountKey=${STORAGE_ACCOUNT_ACCESS_KEY};EndpointSuffix=core.windows.net"
+
+            # Use 'exec' for the mlflow process to become the PID 1 (to make sure that Kubernetes can stop that process easily)
+            exec mlflow server \
+              --host 0.0.0.0 \
+              --port 5000 \
+              --backend-store-uri "$DB_URI" \
+              --artifacts-destination "wasbs://{{ .Values.storageAccount.containerName }}@{{ .Values.storageAccount.name }}.blob.core.windows.net/"
+
+
+        # command: ["mlflow"]
+        # args:
+        #   [
+        #     "server",
+        #     "--host", "0.0.0.0",
+        #     "--port", "5000",
+        #     "--backend-store-uri", "$(DB_URI)",
+        #     "--artifacts-destination", "wasbs://{{ .Values.mlflow.mlflowContainerName }}@{{ .Values.mlflow.mlflowStorageAccountName }}.blob.core.windows.net/"
+        #   ]

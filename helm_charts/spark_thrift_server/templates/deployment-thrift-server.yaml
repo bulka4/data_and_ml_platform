@@ -1,0 +1,72 @@
+# Spark provides the `start-thriftserver.sh` script. We need to run it with proper Kubernetes configs. We need to use here the `client` mode.
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: spark-thrift-server
+  namespace: spark
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: spark-thrift-server
+  template:
+    metadata:
+      labels:
+        app: spark-thrift-server
+    spec:
+      serviceAccountName: spark-thrift-sa
+      # Get a secret with credentials for authentication to the ACR.
+      imagePullSecrets:
+        - name: {{ .Values.acrSecret.secretName }}
+      containers:
+				- name: thrift
+				image: {{ .Values.spark.sparkImageUrl }}
+				command:
+				- /bin/bash
+				- -c
+				- |
+					/opt/spark/sbin/start-thriftserver.sh \
+					--master k8s://https://$KUBERNETES_SERVICE_HOST:$KUBERNETES_SERVICE_PORT \
+					--deploy-mode client \
+					--name spark-thrift-server \
+					--conf spark.kubernetes.namespace=spark \
+					--conf spark.kubernetes.authenticate.driver.serviceAccountName=spark-thrift-sa \
+					--conf spark.kubernetes.container.image={{ .Values.spark.sparkImageUrl }} \
+					--conf spark.executor.instances=4 \
+					--conf spark.executor.memory=4g \
+					--conf spark.executor.cores=2 \
+					--conf spark.sql.shuffle.partitions=200
+				env:
+					# Variables with:
+					#   - Servie Principal's client ID and secret
+					#   - Azure Tenant ID
+					#   - Name of the Storage Account
+					# which will be used in the spark-defaults.conf file
+					- name: CLIENT_ID
+						valueFrom:
+						secretKeyRef:
+							name: adls-sp-secret
+							key: client-id
+					- name: CLIENT_SECRET
+						valueFrom:
+						secretKeyRef:
+							name: adls-sp-secret
+							key: client-secret
+					- name: TENANT_ID
+						valueFrom:
+						secretKeyRef:
+							name: adls-sp-secret
+							key: tenant-id
+					- name: MY_ACCOUNT
+						value: {{ .Values.spark.storageAccountName }}
+				# Mount config files created in the ConfigMap
+				volumeMounts:
+				- name: spark-conf
+					mountPath: /opt/spark/conf
+						ports:
+						- containerPort: 10000
+			volumes:
+			- name: spark-conf
+				configMap:
+				name: spark-conf

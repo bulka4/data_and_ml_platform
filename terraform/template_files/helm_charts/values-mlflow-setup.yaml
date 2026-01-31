@@ -1,0 +1,75 @@
+# General namespace for all resources
+namespace: ${namespace}
+
+# Parameters for installing MySQL dependency:
+mysql:
+  fullnameOverride: mysql # Name of the created resource
+  primary:
+    persistence:
+      enabled: true
+      existingClaim: mysql-pvc # We will create this volume in this chart as well.
+      storageClass: ""
+  auth:
+    # Create a new user. This is needed so MLflow Tracking Server can connect
+    database: mlflow # DB that will be created
+    username: mlflow # custom user
+    secretName: ${mysql_secret_name}  # Name of the secret with credentials for the above user
+    userPasswordSecretKey: ${mysql_user_password_secret_key} # Name of the key in the secret with the password of the user
+
+    # rootPassword:
+    #   secretKeyRef:
+    #     name: ${mysql_secret_name}
+    #     key: client_secret
+
+    # password: # custom user password
+    #   secretKeyRef:
+    #     name: ${mysql_secret_name}
+    #     key: user_password
+    
+    # rootPassword: abc123
+    # # Create a new user. This is needed so MLflow Tracking Server can connect
+    # database: mlflow    # DB that will be created
+    # username: mlflow    # custom user
+    # password: mlflow123 # custom user password
+
+# Storage class for PVC for MySQL backend store. The 'managed-csi' option causes that data will be stored in an Azure Disk. It will be created on 
+# demand when creating this volume and deleted when deleting the Volume. It is used in the tracking_server > mysql-pvc.yaml template.
+mySqlMounting:
+  storageClass: managed-csi
+
+# MLflow configuration. Here we have the following values:
+# - trackingServerSecretName - Name of the secret with values used by the Tracking Server to connect to the backend and artifact store
+# - serviceAccountName - Name of the Service Account used in the Job running the MLflow project
+# - trackingServerServiceName - Name of the Service which Tracking Server deployment will be using
+# - Parameters related to the Azure Storage Account which will serve as an artifact store:
+#   - azureConnectionString - Connection string to the Storage Account. It will be stored in the trackingServerSecretName secret.
+#   - mlflowStorageAccountName - Name of the Storage Account. Used in the Tracking Server Deployment.
+#   - mlflowContainerName - Name of the container in the Storage Account which will be used. Used in the Tracking Server Deployment.
+mlflow:
+  # trackingServerSecretName: mlflow-ts-secret
+  serviceAccountName: ${service_account_name}
+  trackingServerServiceName: ${tracking_server_service_name}
+  # azureConnectionString: DefaultEndpointsProtocol=https;AccountName=${mlflow_storage_account_name};AccountKey=${mlflow_storage_account_access_key};EndpointSuffix=core.windows.net
+
+# Variables related to the Storage Account and container used as an artifact store
+storageAccount:
+  name: ${mlflow_storage_account_name}            # Name of the Storage Account
+  containerName: ${mlflow_container}              # Name of the container in the Storage Account
+  secretName: ${sa_secret_name}                   # Name of the secret with an access key to the Storage Account
+  accessKeySecretKey: ${sa_access_key_secret_key} # Name of the secret key with the Storage Account access key
+
+
+# Information about ACR and images it contains:
+#   - URL - ACR URL (<registry-name>.azurecr.io)
+#   - trackingServerImageName - Name of the image used for the MLflow Tracking Server
+#   - secretName - Name of the secret used for authentication when accessing ACR. It needs to be created like that:
+        # kubectl create secret docker-registry acr-secret \
+        #     --namespace ${namespace} \
+        #     --docker-server=${acr_url} \ # ACR URL (<registry-name>.azurecr.io) 
+        #     --docker-username=${client_id} \  # That can be Service Principal client ID
+        #     --docker-password=${client_secret} \  # That can be Service Principal secret
+        #     --docker-email=unused@example.com # It doesn't matter what we put here but it is needed
+acr:
+  url: ${acr_url}
+  trackingServerImageName: ${tracking_server_image_name}
+  secretName: ${acr_secret_name}
