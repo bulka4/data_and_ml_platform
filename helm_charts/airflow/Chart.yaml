@@ -5,5 +5,5 @@ version: 0.1.0
 
 dependencies:
   - name: airflow
-    version: 1.13.0   
+    version: 1.15.0 # Default Airflow version for that chart is 2.9.3
     repository: https://airflow.apache.org

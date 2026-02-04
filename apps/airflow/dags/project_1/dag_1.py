@@ -7,7 +7,8 @@ from datetime import datetime
 
 # =============== Configuration ===============
 image = "myacr.azurecr.io/airflow-dag:latest"
-script_to_run = "/opt/airflow/dags/project_1/dag_1.py"
+script_to_run = "/opt/airflow/dags/project_1/task_1.py"
+pvc_name = "airflow-dags-pvc" # Name of the PVC with saved DAGs code
 
 
 
@@ -27,7 +28,7 @@ with DAG(
     dags_volume = V1Volume(
         name='dags-volume'
         ,persistent_volume_claim=V1PersistentVolumeClaimVolumeSource(
-            claim_name='airflow-dags-pvc'
+            claim_name=pvc_name
         )
     )
 

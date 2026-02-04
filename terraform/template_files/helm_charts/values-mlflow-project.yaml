@@ -1,6 +1,6 @@
 namespace: ${namespace}
 serviceAccountName: ${service_account_name}
-image: ${acr_url}/${mlproject_image_name}:${mlproject_image_tag}
+image: ${acr_url}/${mlflow_project_image_name}:${mlflow_project_image_tag}
 
 # Command to execute of the format: "mlflow run <path> -e <entrypoint-name> --<param1> <value1> --env-manager local"
 # - <path> - Path to the MLflow project to run. File share in Azure Storage Account will be mounted to the Job on path

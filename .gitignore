@@ -9,3 +9,4 @@ terraform.tfvars
 values.yaml
 test.py
 test.yml
+create_k8s_secrets.bash

@@ -112,7 +112,7 @@ module "dwh_sa" {
 # Container for DWH (data warehouse). We will keep there data used for Spark calculations.
 module "dwh_container" {
   source = "./modules/sa_container"
-  name = "DWH"
+  name = "dwh"
   storage_account_name = module.dwh_sa.name
 }
 
@@ -174,7 +174,7 @@ locals {
     aks_name        = azurerm_kubernetes_cluster.aks.name
 
     acr_sp_id       = module.service_principal.client_id
-    acr_sp_password = module.service_principal.client_password
+    acr_sp_secret = module.service_principal.client_secret
     acr_name        = module.acr.name
     
     tenant_id       = data.azurerm_client_config.current.tenant_id
@@ -187,7 +187,7 @@ locals {
     airflow_dag_image_tag   = local.airflow_dag_image_tag
 
     spark_image_name  = local.spark_image_name
-    spark_image_tag   = spark_image_tag.spark_image_name
+    spark_image_tag   = local.spark_image_tag
 
     mlflow_tracking_server_image_name = local.mlflow_tracking_server_image_name
     mlflow_tracking_server_image_tag  = local.mlflow_tracking_server_image_tag
@@ -208,16 +208,18 @@ locals {
     airflow_logs_sa_name        = local.system_files_sa_name        # Name of the Storage Account where logs will be saved
     airflow_logs_container_name = local.airflow_logs_container_name # Name of the container where logs will be saved
 
-    repo_url  = "https://github.com/bulka4/data_and_ml_platform"  # URL of the repository with code with Airflow DAGs
-    branch    = "main"                                            # Branch with the code to run
-    sub_path  = "apps/airflow/dags"                               # Folder with the code to run
+    repo_url  = "https://github.com/bulka4/data_and_ml_platform.git"      # URL of the repository with code with Airflow DAGs (https://github.com/<org-name>/<repo-name>.git)
+    branch    = "main"                                                    # Branch with the code to run
+    # sub_path  = "apps/airflow/dags"                                     # Folder with the code to run
+    repo_dags_folder_path = "data_and_ml_platform.git/apps/airflow/dags"  # <repo-name>.git/path/to/dags/folder (e.g. repo_name.git/apps/airflow/dags)
 
     storage_account_secret = "airflow-azure-blob" # Name of the secret with credentials for accessing Storage Account (to create a connection)
+    acr_secret_name = "acr-secret"
   })
 
 
   # values.yaml for the Spark Thrift Server Helm chart
-  thrift_server_values = templatefile("template_files/helm_charts/values-airflow.yaml", {
+  thrift_server_values = templatefile("template_files/helm_charts/values-thrift-server.yaml", {
     spark_image_name = local.spark_image_name
 
     sa_name        = module.dwh_sa.name        # Name of the Storage Account where data used for Spark calculations will be saved
@@ -249,17 +251,30 @@ locals {
 
 
   # values.yaml for the MLflow project Helm chart
-  mlflow_project_values = templatefile("template_files/helm_charts/values-mlflow-setup.yaml", {
+  mlflow_project_values = templatefile("template_files/helm_charts/values-mlflow-project.yaml", {
     namespace = "mlflow"
     service_account_name = "mlflow-project-sa"
     tracking_server_service_name = "tracking-server-service"
 
-    acr_url               = module.acr.url
-    mlproject_image_name  = local.mlflow_project_image_name
+    acr_url                     = module.acr.url
+    mlflow_project_image_name   = local.mlflow_project_image_name
+    mlflow_project_image_tag    = local.mlflow_project_image_tag
 
-    repo_url  = "https://github.com/bulka4/data_and_ml_platform"  # URL of the repository with code with MLflow projects to run
-    branch    = "main"                                            # Branch with the code to run
-    sub_path  = "apps/mlflow/project"                             # Path to a folder with a project to run
+    repo_url  = "https://github.com/bulka4/data_and_ml_platform.git"  # URL of the repository with code with MLflow projects to run (https://github.com/<org-name>/<repo-name>.git)
+    branch    = "main"                                                # Branch with the code to run
+    sub_path  = "apps/mlflow/project"                                 # Path to a folder with a project to run
+  })
+
+
+  # create_k8s_secrets.bash script for creating Kubernetes secrets
+  create_k8s_secrets = templatefile("template_files/create_k8s_secrets_template.bash", {
+    acr_url               = module.acr.url                                  # ACR URL (<registry-name>.azurecr.io)
+    client_id             = module.service_principal.client_id              # Service Principal client ID
+    client_secret         = module.service_principal.client_secret          # Service Principal client secret
+    tenant_id             = data.azurerm_client_config.current.tenant_id    # Azure tenant ID
+    storage_account_name  = module.system_files_sa.name                     # Name of the Storage Account used for Airflow logs
+
+    acr_secret_name = "acr-secret"
   })
 }
 
@@ -274,6 +289,7 @@ resource "local_file" "local_files" {
     2 = {content = local.thrift_server_values, path = "../helm_charts/spark_thrift_server/values.yaml"}
     3 = {content = local.mlflow_setup_values, path = "../helm_charts/mlflow_setup/values.yaml"}
     4 = {content = local.mlflow_project_values, path = "../helm_charts/mlflow_project/values.yaml"}
+    5 = {content = local.create_k8s_secrets, path = "../create_k8s_secrets.bash"}
   }
 
   content = each.value.content

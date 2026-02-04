@@ -38,7 +38,7 @@ RUN curl -sL https://aka.ms/InstallAzureCLIDeb | bash && \
     # and 'az acr build'.
     az login --service-principal \
       --username ${acr_sp_id} \
-      --password ${acr_sp_password} \
+      --password ${acr_sp_secret} \
       --tenant ${tenant_id} && \
 
     az account set --subscription ${subscription_id} && \
@@ -81,14 +81,14 @@ RUN apt-get install nano
 COPY dockerfiles /root/dockerfiles
 
 # Save the script for building images and pushing them to ACR.
-RUN <<EOF cat > /root/apps/build_and_push.sh
+RUN <<EOF cat > /root/dockerfiles/build_and_push.sh
 az acr build \
   --registry ${acr_name} \
   --resource-group ${rg_name} \
   --image $AIRFLOW_IMAGE_NAME \
   --file /root/dockerfiles/airflow.Dockerfile \
   /root/dockerfiles
-  
+
 az acr build \
   --registry ${acr_name} \
   --resource-group ${rg_name} \
@@ -114,24 +114,29 @@ az acr build \
   --registry ${acr_name} \
   --resource-group ${rg_name} \
   --image $MLFLOW_PROJECT_IMAGE_NAME \
-  --file /root/dockerfiles/mlflow.project.Dockerfile \
+  --file /root/dockerfiles/mlflow_project/mlflow.project.Dockerfile \
   /root/dockerfiles/mlflow_project
 EOF
 
 RUN \
     # Remove the '\r' sign from the script
-    sed -i 's/\r$//' /root/apps/build_and_push.sh && \
+    sed -i 's/\r$//' /root/dockerfiles/build_and_push.sh && \
     # Make the script executable
-    chmod +x /root/apps/build_and_push.sh
+    chmod +x /root/dockerfiles/build_and_push.sh
 
 
 
 
-# ============ Copy the folder with Helm charts for deploying all the resources needed for RAG workflow ==============
+# ============ Copy other needed folders ==============
+
+# Helm charts for deploying all the resources
 COPY helm_charts /root/helm_charts
+# Script for creating Kubernetes namespaces and secrets
+COPY create_k8s_secrets.bash /root/create_k8s_secrets.bash
+
 
 
 
 
 # Run the script for building and pushing images to ACR and start a bash session
-# CMD ["bash", "-c", "/root/apps/build_and_push.sh && /bin/bash"]
+# CMD ["bash", "-c", "/root/dockerfiles/build_and_push.sh && /bin/bash"]

@@ -1,3 +1,6 @@
+# This PVC was used for a persistent volume (dags.persistence setting in the values.yaml) but it looks like we will not be using that
+# functionality anymore so it is not needed.
+
 # This is a PVC used to store code pulled from a repo by git-sync.
 
 apiVersion: v1
