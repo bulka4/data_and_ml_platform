@@ -41,20 +41,33 @@ with DAG(
         ,read_only=True
     )
 
+    # task = KubernetesPodOperator(
+    #     task_id="run_task"
+    #     ,name="run-task"
+    #     ,namespace="airflow"
+    #     ,service_account_name="airflow-sa" # K8s Service Account with a secret for pulling images
+    #     ,image=image
+    #     ,volumes=[dags_volume]
+    #     ,volume_mounts=[dags_volume_mount]
+    #     ,cmds=["python", script_to_run]
+    #     ,env_vars={
+    #         "AIRFLOW__LOGGING__REMOTE_LOGGING": "True",
+    #         "AIRFLOW__LOGGING__REMOTE_BASE_LOG_FOLDER": airflow_logs_url,
+    #         "AIRFLOW__LOGGING__REMOTE_LOG_CONN_ID": conn_id,
+    #     }
+    #     ,is_delete_operator_pod=False # dont delete the pod after finish for debugging
+    #     ,kubernetes_conn_id=None # use only our created connection
+    #     ,get_logs=True
+    # )
+
     task = KubernetesPodOperator(
-        task_id="run_task"
-        ,name="run-task"
-        ,namespace="airflow"
-        ,service_account_name="airflow-sa" # K8s Service Account with a secret for pulling images
-        ,image=image
-        ,volumes=[dags_volume]
-        ,volume_mounts=[dags_volume_mount]
-        ,cmds=["python", script_to_run]
-        ,env_vars={
-            "AIRFLOW__LOGGING__REMOTE_LOGGING": "True",
-            "AIRFLOW__LOGGING__REMOTE_BASE_LOG_FOLDER": airflow_logs_url,
-            "AIRFLOW__LOGGING__REMOTE_LOG_CONN_ID": conn_id,
-        }
-        ,is_delete_operator_pod=False # dont delete the pod after finish for debugging
-        ,get_logs=True
+        task_id="sanity",
+        name="sanity",
+        namespace="airflow",
+        image="busybox",
+        cmds=["sh", "-c", "echo hello && sleep 30"],
+        service_account_name="airflow-sa",
+        kubernetes_conn_id=None,
+        is_delete_operator_pod=False,
     )
+
