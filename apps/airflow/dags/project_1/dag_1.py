@@ -6,7 +6,7 @@ from datetime import datetime
 
 
 # =============== Configuration ===============
-image = "myacr.azurecr.io/airflow-dag:latest"
+image = "dataanalyticsbulka.azurecr.io/airflow-dag:latest" # Include only lowercase letters
 script_to_run = "/opt/airflow/dags/project_1/task_1.py"
 pvc_name = "airflow-dags-pvc" # Name of the PVC with saved DAGs code (pulled by git-sync)
 airflow_logs_url = "wasb://airflow-logs@systemfilesbulka.blob.core.windows.net" # URL of the Storage Account used for saving Airflow logs
@@ -37,6 +37,7 @@ with DAG(
     dags_volume_mount = V1VolumeMount(
         name='dags-volume'
         ,mount_path='/opt/airflow/dags'  # same path as git-sync
+        ,sub_path='dags'
         ,read_only=True
     )
 
