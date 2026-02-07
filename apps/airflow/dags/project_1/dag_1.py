@@ -55,4 +55,6 @@ with DAG(
             "AIRFLOW__LOGGING__REMOTE_BASE_LOG_FOLDER": airflow_logs_url,
             "AIRFLOW__LOGGING__REMOTE_LOG_CONN_ID": conn_id,
         }
+        ,is_delete_operator_pod=False # dont delete the pod after finish for debugging
+        ,get_logs=True
     )
