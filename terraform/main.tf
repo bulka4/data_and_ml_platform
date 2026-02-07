@@ -74,6 +74,7 @@ module "acr" {
 
 # Storage account for system files:
 #   - Airflow logs
+#   - Airflow DAGs code
 locals {
   system_files_sa_name = "systemfilesbulka"
 }
@@ -94,6 +95,14 @@ locals {
 module "airflow_logs_container" {
   source = "./modules/sa_container"
   name = local.airflow_logs_container_name
+  storage_account_name = module.system_files_sa.name
+}
+
+
+# File share for Airflow DAGs code
+module "dags_fs" {
+  source = "./modules/sa_file_share"
+  name = "airflow-dags"
   storage_account_name = module.system_files_sa.name
 }
 
@@ -207,11 +216,12 @@ locals {
     
     airflow_logs_sa_name        = local.system_files_sa_name        # Name of the Storage Account where logs will be saved
     airflow_logs_container_name = local.airflow_logs_container_name # Name of the container where logs will be saved
+    airflow_dags_fs_name        = module.dags_fs.name               # Name of the File share where DAGs code will be saved
 
-    repo_url  = "https://github.com/bulka4/data_and_ml_platform.git"      # URL of the repository with code with Airflow DAGs (https://github.com/<org-name>/<repo-name>.git)
-    branch    = "main"                                                    # Branch with the code to run
-    # sub_path  = "apps/airflow/dags"                                     # Folder with the code to run
-    repo_dags_folder_path = "data_and_ml_platform.git/apps/airflow/dags"  # <repo-name>.git/path/to/dags/folder (e.g. repo_name.git/apps/airflow/dags)
+    repo_url  = "https://github.com/bulka4/data_and_ml_platform.git"  # URL of the repository with code with Airflow DAGs (https://github.com/<org-name>/<repo-name>.git)
+    repo_name = "data_and_ml_platform.git"                            # Name of the repo (<repo-name>.git)
+    branch    = "main"                                                # Branch with the code to run
+    dags_folder_path = "apps/airflow/dags"                            # Path to the folder with dags within the repo
 
     storage_account_secret = "airflow-azure-blob" # Name of the secret with credentials for accessing Storage Account (to create a connection)
     acr_secret_name = "acr-secret"
@@ -268,11 +278,13 @@ locals {
 
   # create_k8s_secrets.bash script for creating Kubernetes secrets
   create_k8s_secrets = templatefile("template_files/create_k8s_secrets_template.bash", {
-    acr_url               = module.acr.url                                  # ACR URL (<registry-name>.azurecr.io)
-    client_id             = module.service_principal.client_id              # Service Principal client ID
-    client_secret         = module.service_principal.client_secret          # Service Principal client secret
-    tenant_id             = data.azurerm_client_config.current.tenant_id    # Azure tenant ID
-    storage_account_name  = module.system_files_sa.name                     # Name of the Storage Account used for Airflow logs
+    acr_url                     = module.acr.url                                  # ACR URL (<registry-name>.azurecr.io)
+    client_id                   = module.service_principal.client_id              # Service Principal client ID
+    client_secret               = module.service_principal.client_secret          # Service Principal client secret
+    tenant_id                   = data.azurerm_client_config.current.tenant_id    # Azure tenant ID
+    storage_account_name        = module.system_files_sa.name                     # Name of the Storage Account used for Airflow logs
+    storage_account_access_key  = module.system_files_sa.primary_access_key       # Access key to the Storage Account
+    sa_container_name           = local.airflow_logs_container_name               # Name of the container in the Storage Account for Airflow logs
 
     acr_secret_name = "acr-secret"
   })

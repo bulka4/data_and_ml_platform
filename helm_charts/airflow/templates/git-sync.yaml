@@ -1,9 +1,12 @@
-# This is a deployment running git-sync which pulls code from a repo and saves it in a persistent volume which is then mounted into Airflow pods
+# This is a deployment running git-sync which pulls code from a repo and saves it in a persistent volume (PV) which is then mounted into Airflow pods.
+# We use Azure File Share for PV which doesn't support setting file permissions while git-sync tries to do that. That's why git-sync can't pull code
+# directly into the PV but it needs to pull it into an ephemeral volume first.
 
 apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: git-sync
+  namespace: airflow
 spec:
   replicas: 1
   selector:
@@ -14,31 +17,55 @@ spec:
       labels:
         app: git-sync
     spec:
-      # Init container for setting permissions to the folder where we will be cloning repo
-      # 65533 is UID of the user used in the image
-      initContainers:
-        - name: init-repo
-          image: busybox
-          command: ["sh", "-c", "mkdir -p /opt/airflow/dags && chown -R 65533:65533 /opt/airflow/dags"]
-          volumeMounts:
-            - name: dags
-              mountPath: /opt/airflow/dags
       containers:
         - name: git-sync
-          image: k8s.gcr.io/git-sync/git-sync:v3.6.0
+          image: registry.k8s.io/git-sync/git-sync:v4.5.0
           env:
-            - name: GIT_SYNC_REPO
+            - name: GITSYNC_REPO
               value: {{ .Values.gitSync.repoURL }}
             - name: GIT_SYNC_BRANCH
               value: {{ .Values.gitSync.branch }}
-            - name: GIT_SYNC_ROOT
-              value: {{ .Values.gitSync.clonePath }}
+            # choose as the destination folder a folder which is not the root folder of the mounted volume but a subfloder to avoid
+            # permission errors
+            - name: GITSYNC_ROOT
+              value: /tmp/dags
             - name: GIT_SYNC_WAIT
               value: "60"   # sync interval in seconds
+            # Don't set up file permissions, since we are mounting a PV which uses Azure File Share and there are no file permissions
+            - name: GIT_SYNC_PERMISSIONS
+              value: "0"
+            # Run git-sync as a non-root user so we don't get problems with file permissions
+            - name: GITSYNC_ADD_USER
+              value: "true"
           volumeMounts:
-            - name: dags 
+            - name: tmp-dags
+              mountPath: /tmp/dags
+        # Container which copies code pulled by git-sync into PV
+        - name: copier
+          image: alpine:3.19
+          command:
+            - sh
+            - -c
+            - |
+              # Install rsync
+              apk add --no-cache rsync
+              while true; do
+                # Copy file differences from ephemeral clone to RWX PV
+                # Remove files at target which are not present at the source anymore
+                rsync -a --delete /tmp/dags/{{ .Values.gitSync.repoName }}/{{ .Values.gitSync.dagsFolderPath }}/ /opt/airflow/dags/
+                sleep 60
+              done
+          volumeMounts:
+            - name: tmp-dags
+              mountPath: /tmp/dags
+            - name: dags
               mountPath: /opt/airflow/dags
+              subPath: dags
       volumes:
+        # Temporary volume for code pulled by git-sync
+        - name: tmp-dags
+          emptyDir: {}
+        # Azure File Share PV where code will be saved and can be mounted to other pods
         - name: dags
           persistentVolumeClaim:
             claimName: airflow-dags-pvc

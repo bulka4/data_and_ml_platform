@@ -29,12 +29,10 @@ done
 
 # Create a secret used by Airflow to access Storage Account to save logs there. 
 # It uses credentials of a Service Principal with proper permissions.
-# account_name is a name of the Storage Account for Airflow logs (systemfilesbulka by default)
+# account_name is a name of the Storage Account for Airflow logs
 kubectl create secret generic airflow-azure-blob \
-  --from-literal=client_id=${client_id} \
-  --from-literal=client_secret=${client_secret} \
-  --from-literal=tenant_id=${tenant_id} \
-  --from-literal=account_name=${storage_account_name} \
+  --from-literal=azurestorageaccountname=${storage_account_name} \
+  --from-literal=azurestorageaccountkey=${storage_account_access_key} \
   -n airflow
 
 

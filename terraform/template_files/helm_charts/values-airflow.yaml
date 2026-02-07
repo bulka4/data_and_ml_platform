@@ -1,11 +1,29 @@
 executor: KubernetesExecutor
 
 # Parameters for the git-sync deployment. git-sync pulls code from a repo and saves it in the PVC defined in the dags-pvc.yaml.
-# That PVC can be then mounted into other pods to make the code available in them. 
+# That PVC stores data in Azure File Share and can be then mounted into other pods to make the code available in them. 
+#   - repoURL - URL of the repo with dags code to pull (https://github.com/<org-name>/<repo-name>.git)
+#   - repoName - Name of the repo (<repo-name>.git)
+#   - branch - Branch with code to use
+#   - clonePath - Where to clone code in the git-sync pod (which will be mounted into the PVC)
+#   - storageAccountName - Name of the Azure Storage Account where to save dags code
+#   - fileShareName - Name of the File Share within the Azure Storage Account where to save dags code
+#   - secretName - Name of the secret for accessing Storage Account with File Share. It must contains keys:
+#       - azurestorageaccountname - Storage Account name
+#       - azurestorageaccountkey - Access key
 gitSync:
-  repoURL: ${repo_url}  # https://github.com/<org-name>/<repo-name>.git
-  branch: ${branch}     # Branch with code to use
-  clonePath: /opt/airflow/dags # Where to clone code in the git-sync pod (which will be mounted into the PVC)
+  repoURL: https://github.com/bulka4/data_and_ml_platform.git
+  repoName: ${repo_name}
+  dagsFolderPath: ${dags_folder_path}
+  branch: main
+  clonePath: /opt/airflow/dags
+  storageAccountName: ${airflow_logs_sa_name}
+  fileShareName: ${airflow_dags_fs_name}
+  secretName: ${storage_account_secret}
+
+# Secret for pulling images from ACR
+acr:
+  secretName: ${acr_secret_name}
 
 airflow:
   images:
@@ -15,18 +33,25 @@ airflow:
   # Secret for pulling images from ACR
   registry:
     secretName: ${acr_secret_name}
-  config:
-    AIRFLOW__CORE__LOAD_EXAMPLES:
+  env:
+    - name: AIRFLOW__CORE__LOAD_EXAMPLES
       value: "false"
-    AIRFLOW__KUBERNETES__NAMESPACE:
+    - name: AIRFLOW__KUBERNETES__NAMESPACE
       value: ${airflow_kubernetes_namespace}
     # Saving logs to Azure Storage Account
-    AIRFLOW__LOGGING__REMOTE_LOGGING:
+    - name: AIRFLOW__LOGGING__REMOTE_LOGGING
       value: "True"
-    AIRFLOW__LOGGING__REMOTE_BASE_LOG_FOLDER:
+    - name: AIRFLOW__LOGGING__REMOTE_BASE_LOG_FOLDER
       value: "wasb://${airflow_logs_container_name}@${airflow_logs_sa_name}.blob.core.windows.net"
-    AIRFLOW__LOGGING__REMOTE_LOG_CONN_ID:
+    - name: AIRFLOW__LOGGING__REMOTE_LOG_CONN_ID
       value: "azure_blob" # ID of the connection used for accessing Azure Storage Account for saving Airflow logs
+    # Use this service accounts for all pods running Airflow tasks
+    - name: AIRFLOW__KUBERNETES__SERVICE_ACCOUNT_NAME
+      value: airflow-sa
+    # We need to provide webserver URL to see logs in UI. Looks like this URL is sent to a browser and browser uses it
+    # to get data about logs.
+    # - name: AIRFLOW__WEBSERVER__BASE_URL
+    #   value: "http://airflow-webserver"
 
   # Add PVC with code pulled by the git-sync to the scheduler, workers, triggerer and webserver
   scheduler:
@@ -37,7 +62,11 @@ airflow:
     extraVolumeMounts:
       - name: dags
         mountPath: /opt/airflow/dags
-        subPath: ${repo_dags_folder_path} # Mount only a specific path from the volume
+        subPath: dags # Mount only a specific path from the volume
+    # Use our own service account which has specified a secret for pulling images.
+    serviceAccount:
+      create: False
+      name: airflow-sa
 
   workers:
     extraVolumes:
@@ -47,7 +76,11 @@ airflow:
     extraVolumeMounts:
       - name: dags
         mountPath: /opt/airflow/dags
-        subPath: ${repo_dags_folder_path} # Mount only a specific path from the volume
+        subPath: dags # Mount only a specific path from the volume
+    # Use our own service account which has specified a secret for pulling images.
+    serviceAccount:
+      create: False
+      name: airflow-sa
 
   triggerer:
     extraVolumes:
@@ -57,7 +90,11 @@ airflow:
     extraVolumeMounts:
       - name: dags
         mountPath: /opt/airflow/dags
-        subPath: ${repo_dags_folder_path} # Mount only a specific path from the volume
+        subPath: dags # Mount only a specific path from the volume
+    # Use our own service account which has specified a secret for pulling images.
+    serviceAccount:
+      create: False
+      name: airflow-sa
 
   webserver:
     extraVolumes:
@@ -67,7 +104,11 @@ airflow:
     extraVolumeMounts:
       - name: dags
         mountPath: /opt/airflow/dags
-        subPath: ${repo_dags_folder_path} # Mount only a specific path from the volume
+        subPath: dags # Mount only a specific path from the volume
+    # Use our own service account which has specified a secret for pulling images.
+    serviceAccount:
+      create: False
+      name: airflow-sa
 
   # Set to false in order not to create a PostgreSQL for Airflow metadata (we create it separately in postgresql.yaml)
   postgresql:
@@ -122,6 +163,7 @@ airflow:
       - name: create-admin-user
         image: ${acr_url}/${airflow_image_name}:${airflow_image_tag}
         imagePullPolicy: IfNotPresent
+        # Create a new user. Use '|| true' (|| is the logical operator OR) so that command doesn't fail when user already exists.
         command:
           - bash
           - -c
@@ -134,7 +176,8 @@ airflow:
               --email admin@example.com \
               --password admin || true
         env:
-          # Add env var with a connection string to the PostgreSQL metadata db we use, so Airflow knows which one to use and can connect
+          # Add env var with a connection string to the PostgreSQL metadata db we use, so Airflow knows which one to use and can connect.
+          # Data about the new user will be saved there.
           - name: AIRFLOW__DATABASE__SQL_ALCHEMY_CONN
             valueFrom:
               secretKeyRef:
@@ -145,37 +188,29 @@ airflow:
       - name: create-azure-connection
         image: ${acr_url}/${airflow_image_name}:${airflow_image_tag}
         imagePullPolicy: IfNotPresent
+        # Create a new connection if it doesn't exist yet (|| is the logical operator OR)
         command:
           - bash
           - -c
           - |
+            airflow connections get azure_blob || \
             airflow connections add azure_blob \
               --conn-type wasb \
-              --conn-login $AZURE_CLIENT_ID \
-              --conn-password $AZURE_CLIENT_SECRET \
-              --conn-extra '{"tenant_id":"$AZURE_TENANT_ID","account_name":"$AZURE_ACCOUNT_NAME"}'
+              --conn-login $ACCOUNT_NAME \
+              --conn-password $ACCESS_KEY
         env:
-          - name: AZURE_TENANT_ID
+          - name: ACCOUNT_NAME
             valueFrom:
               secretKeyRef:
                 name: ${storage_account_secret}
-                key: tenant_id
-          - name: AZURE_ACCOUNT_NAME
+                key: azurestorageaccountname
+          - name: ACCESS_KEY
             valueFrom:
               secretKeyRef:
                 name: ${storage_account_secret}
-                key: account_name
-          - name: AZURE_CLIENT_ID
-            valueFrom:
-              secretKeyRef:
-                name: ${storage_account_secret}
-                key: client_id
-          - name: AZURE_CLIENT_SECRET
-            valueFrom:
-              secretKeyRef:
-                name: ${storage_account_secret}
-                key: client_secret
-          # Add env var with a connection string to the PostgreSQL metadata db we use, so Airflow knows which one to use and can connect
+                key: azurestorageaccountkey
+          # Add env var with a connection string to the PostgreSQL metadata db we use, so Airflow knows which one to use and can connect.
+          # Data about the new connection will be saved there.
           - name: AIRFLOW__DATABASE__SQL_ALCHEMY_CONN
             valueFrom:
               secretKeyRef:

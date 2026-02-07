@@ -1,26 +1,36 @@
 # Add to the Service Account used by the Airflow scheduler permissions for creating pods (since we use KubernetesExecutor, each Airflow task will run
-# in its own, new pod)
+# in its own, new pod).
 
 apiVersion: rbac.authorization.k8s.io/v1
 kind: Role
 metadata:
   namespace: airflow
-  name: airflow-scheduler-pod-manager
+  name: airflow-pod-manager
 rules:
   - apiGroups: [""]
-    resources: ["pods"]
-    verbs: ["create", "get", "list", "watch", "delete"]
+    resources:
+      - pods
+      - pods/log
+      - pods/status
+      - events
+    verbs:
+      - create
+      - get
+      - list
+      - watch
+      - delete
+      - patch
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
 metadata:
-  name: airflow-scheduler-pod-manager-binding
+  name: airflow-pod-manager-binding
   namespace: airflow
 subjects:
   - kind: ServiceAccount
-    name: airflow-scheduler
+    name: airflow-sa
     namespace: airflow
 roleRef:
   kind: Role
-  name: airflow-scheduler-pod-manager
+  name: airflow-pod-manager
   apiGroup: rbac.authorization.k8s.io
