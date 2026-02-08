@@ -1,5 +1,3 @@
-executor: KubernetesExecutor
-
 # Parameters for the git-sync deployment. git-sync pulls code from a repo and saves it in the PVC defined in the dags-pvc.yaml.
 # That PVC stores data in Azure File Share and can be then mounted into other pods to make the code available in them. 
 #   - repoURL - URL of the repo with dags code to pull (https://github.com/<org-name>/<repo-name>.git)
@@ -26,6 +24,8 @@ acr:
   secretName: ${acr_secret_name}
 
 airflow:
+  executor: KubernetesExecutor
+
   images:
     airflow:
       repository: ${acr_url}/${airflow_image_name}
@@ -36,7 +36,7 @@ airflow:
   env:
     - name: AIRFLOW__CORE__LOAD_EXAMPLES
       value: "false"
-    - name: AIRFLOW__KUBERNETES__NAMESPACE
+    - name: AIRFLOW__KUBERNETES_EXECUTOR__NAMESPACE
       value: ${airflow_kubernetes_namespace}
     # Saving logs to Azure Storage Account
     - name: AIRFLOW__LOGGING__REMOTE_LOGGING
@@ -49,10 +49,10 @@ airflow:
     - name: AIRFLOW__KUBERNETES__SERVICE_ACCOUNT_NAME
       value: airflow-sa
     # Use provided kubeconfig file for accessing AKS by Airflow when creating pods for tasks
-    - name: AIRFLOW__KUBERNETES__IN_CLUSTER
-      value: "False"
-    - name: AIRFLOW__KUBERNETES__KUBE_CONFIG
-      value: "/opt/airflow/.kube/config"
+    # - name: AIRFLOW__KUBERNETES__IN_CLUSTER
+    #   value: "False"
+    # - name: AIRFLOW__KUBERNETES__KUBE_CONFIG
+    #   value: "/opt/airflow/.kube/config"
     # We need to provide webserver URL to see logs in UI. Looks like this URL is sent to a browser and browser uses it
     # to get data about logs.
     # - name: AIRFLOW__WEBSERVER__BASE_URL
