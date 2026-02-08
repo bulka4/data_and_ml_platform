@@ -2,7 +2,7 @@
 # in its own, new pod).
 
 apiVersion: rbac.authorization.k8s.io/v1
-kind: ClusterRole
+kind: Role
 metadata:
   namespace: airflow
   name: airflow-pod-manager
@@ -22,7 +22,7 @@ rules:
       - patch
 ---
 apiVersion: rbac.authorization.k8s.io/v1
-kind: ClusterRoleBinding
+kind: RoleBinding
 metadata:
   name: airflow-pod-manager-binding
   namespace: airflow
@@ -31,6 +31,6 @@ subjects:
     name: airflow-sa
     namespace: airflow
 roleRef:
-  kind: ClusterRole
+  kind: Role
   name: airflow-pod-manager
   apiGroup: rbac.authorization.k8s.io

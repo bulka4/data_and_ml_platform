@@ -48,11 +48,6 @@ airflow:
     # Use this service accounts for all pods running Airflow tasks
     - name: AIRFLOW__KUBERNETES__SERVICE_ACCOUNT_NAME
       value: airflow-sa
-    # Use provided kubeconfig file for accessing AKS by Airflow when creating pods for tasks
-    # - name: AIRFLOW__KUBERNETES__IN_CLUSTER
-    #   value: "False"
-    # - name: AIRFLOW__KUBERNETES__KUBE_CONFIG
-    #   value: "/opt/airflow/.kube/config"
     # We need to provide webserver URL to see logs in UI. Looks like this URL is sent to a browser and browser uses it
     # to get data about logs.
     # - name: AIRFLOW__WEBSERVER__BASE_URL
@@ -66,7 +61,8 @@ airflow:
           claimName: airflow-dags-pvc # Volume with dags pulled by git-sync (running in a separate pod) and saved in that PV
     extraVolumeMounts:
       - name: dags
-        mountPath: /opt/airflow
+        mountPath: /opt/airflow/dags
+        subPath: dags
     # Use our own service account which has specified a secret for pulling images.
     serviceAccount:
       create: False
@@ -79,7 +75,8 @@ airflow:
           claimName: airflow-dags-pvc # Volume with dags pulled by git-sync (running in a separate pod) and saved in that PV
     extraVolumeMounts:
       - name: dags
-        mountPath: /opt/airflow
+        mountPath: /opt/airflow/dags
+        subPath: dags
     # Use our own service account which has specified a secret for pulling images.
     serviceAccount:
       create: False
@@ -92,7 +89,8 @@ airflow:
           claimName: airflow-dags-pvc # Volume with dags pulled by git-sync (running in a separate pod) and saved in that PV
     extraVolumeMounts:
       - name: dags
-        mountPath: /opt/airflow
+        mountPath: /opt/airflow/dags
+        subPath: dags
     # Use our own service account which has specified a secret for pulling images.
     serviceAccount:
       create: False

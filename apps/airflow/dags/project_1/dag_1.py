@@ -1,5 +1,5 @@
 from airflow.providers.cncf.kubernetes.operators.kubernetes_pod import KubernetesPodOperator
-from kubernetes.client import V1Volume, V1VolumeMount, V1PersistentVolumeClaimVolumeSource
+from kubernetes.client import V1Volume, V1VolumeMount, V1PersistentVolumeClaimVolumeSource, V1EnvVar, V1EnvVarSource, V1SecretKeySelector
 
 from airflow import DAG
 from datetime import datetime
@@ -49,17 +49,22 @@ with DAG(
         ,image=image
         ,volumes=[dags_volume]
         ,volume_mounts=[dags_volume_mount]
-        #,cmds=["python", script_to_run]
-        ,cmds=["ls", "-R", "/opt/airflow/dags", "&&", "ls", "-R", "/opt/airflow"]
+        ,cmds=["python", script_to_run]
         ,env_vars={
-            "AIRFLOW__LOGGING__REMOTE_LOGGING": "True",
-            "AIRFLOW__LOGGING__REMOTE_BASE_LOG_FOLDER": airflow_logs_url,
-            "AIRFLOW__LOGGING__REMOTE_LOG_CONN_ID": conn_id,
+            "AIRFLOW__LOGGING__REMOTE_LOGGING": "True"
+            ,"AIRFLOW__LOGGING__REMOTE_BASE_LOG_FOLDER": airflow_logs_url
+            ,"AIRFLOW__LOGGING__REMOTE_LOG_CONN_ID": conn_id
+            # Use a secret with a connection string to the metadata db
+            ,V1EnvVar(
+                name="AIRFLOW__DATABASE__SQL_ALCHEMY_CONN"
+                ,value_from=V1EnvVarSource(
+                    secret_key_ref=V1SecretKeySelector(
+                        name="airflow-postgres-connection"
+                        ,key="connection"
+                    )
+                )
+            )
         }
-        ,dag=None
-        # ,is_delete_operator_pod=False # dont delete the pod after finish for debugging
-        # ,kubernetes_conn_id=None # use only our created connection
-        # ,get_logs=True
     )
 
     # task = KubernetesPodOperator(
