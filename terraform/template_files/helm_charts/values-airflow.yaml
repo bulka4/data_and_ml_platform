@@ -24,7 +24,7 @@ acr:
   secretName: ${acr_secret_name}
 
 airflow:
-  executor: KubernetesExecutor
+  executor: CeleryExecutor
 
   images:
     airflow:

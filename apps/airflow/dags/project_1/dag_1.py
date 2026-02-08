@@ -50,31 +50,25 @@ with DAG(
         ,volumes=[dags_volume]
         ,volume_mounts=[dags_volume_mount]
         ,cmds=["python", script_to_run]
-        ,env_vars={
-            "AIRFLOW__LOGGING__REMOTE_LOGGING": "True"
-            ,"AIRFLOW__LOGGING__REMOTE_BASE_LOG_FOLDER": airflow_logs_url
-            ,"AIRFLOW__LOGGING__REMOTE_LOG_CONN_ID": conn_id
-            # Use a secret with a connection string to the metadata db
-            ,V1EnvVar(
-                name="AIRFLOW__DATABASE__SQL_ALCHEMY_CONN"
-                ,value_from=V1EnvVarSource(
-                    secret_key_ref=V1SecretKeySelector(
-                        name="airflow-postgres-connection"
-                        ,key="connection"
-                    )
-                )
-            )
-        }
+        # ,env_vars={
+        #     "AIRFLOW__LOGGING__REMOTE_LOGGING": "True"
+        #     ,"AIRFLOW__LOGGING__REMOTE_BASE_LOG_FOLDER": airflow_logs_url
+        #     ,"AIRFLOW__LOGGING__REMOTE_LOG_CONN_ID": conn_id
+        #     # Use a secret with a connection string to the metadata db. Created pod might be running Airflow CLI commands
+        #     # which needs an access to that db.
+        #     # I am not sure if this is necessary.
+        #     ,V1EnvVar(
+        #         name="AIRFLOW__DATABASE__SQL_ALCHEMY_CONN"
+        #         ,value_from=V1EnvVarSource(
+        #             secret_key_ref=V1SecretKeySelector(
+        #                 name="airflow-postgres-connection"
+        #                 ,key="connection"
+        #             )
+        #         )
+        #     )
+        # }
+        ,in_cluster=True
+        ,get_logs=True
+        ,is_delete_operator_pod=True
     )
-
-    # task = KubernetesPodOperator(
-    #     task_id="sanity",
-    #     name="sanity",
-    #     namespace="airflow",
-    #     image="busybox",
-    #     cmds=["sh", "-c", "echo hello && sleep 30"],
-    #     service_account_name="airflow-sa",
-    #     kubernetes_conn_id=None,
-    #     is_delete_operator_pod=False,
-    # )
 
