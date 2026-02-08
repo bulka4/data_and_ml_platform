@@ -36,7 +36,7 @@ with DAG(
 
     dags_volume_mount = V1VolumeMount(
         name='dags-volume'
-        ,mount_path='/opt/airflow/dags'  # same path as git-sync
+        ,mount_path='/opt/airflow/dags'
         ,sub_path='dags'
         ,read_only=True
     )
@@ -49,7 +49,8 @@ with DAG(
         ,image=image
         ,volumes=[dags_volume]
         ,volume_mounts=[dags_volume_mount]
-        ,cmds=["python", script_to_run]
+        #,cmds=["python", script_to_run]
+        ,cmds=["ls", "-R", "/opt/airflow/dags", "&&", "ls", "-R", "/opt/airflow"]
         ,env_vars={
             "AIRFLOW__LOGGING__REMOTE_LOGGING": "True",
             "AIRFLOW__LOGGING__REMOTE_BASE_LOG_FOLDER": airflow_logs_url,
