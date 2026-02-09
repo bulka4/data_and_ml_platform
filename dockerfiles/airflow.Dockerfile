@@ -11,4 +11,4 @@ RUN pip install \
 	apache-airflow-providers-microsoft-azure==10.0.0 \
 	apache-airflow-providers-cncf-kubernetes==8.1.1 \
     apache-airflow-providers-fab==1.0.4 \
-	--constraint "https://raw.githubusercontent.com/apache/airflow/constraints-2.9.1/constraints-3.10.txt" \
+	--constraint "https://raw.githubusercontent.com/apache/airflow/constraints-2.9.1/constraints-3.10.txt"

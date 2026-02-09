@@ -49,6 +49,7 @@ spec:
             - |
               # Install rsync
               apk add --no-cache rsync
+
               while true; do
                 # Copy file differences from ephemeral clone to RWX PV
                 # Remove files at target which are not present at the source anymore
@@ -60,7 +61,7 @@ spec:
               mountPath: /tmp/dags
             - name: dags
               mountPath: /opt/airflow/dags
-              subPath: dags
+              #subPath: dags
       volumes:
         # Temporary volume for code pulled by git-sync
         - name: tmp-dags

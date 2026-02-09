@@ -62,27 +62,35 @@ airflow:
     extraVolumeMounts:
       - name: dags
         mountPath: /opt/airflow/dags
-        subPath: dags
+        #subPath: dags
     # Use our own service account which has specified a secret for pulling images.
     serviceAccount:
       create: False
       name: airflow-sa
 
   workers:
+    # Limit the size of storage for logs
+    persistence:
+      size: 1Gi
     extraVolumes:
+      # Volume with dags pulled by git-sync (running in a separate pod) and saved in that PV.
+      # It will be used by the copier container
       - name: dags
         persistentVolumeClaim:
-          claimName: airflow-dags-pvc # Volume with dags pulled by git-sync (running in a separate pod) and saved in that PV
+          claimName: airflow-dags-pvc
     extraVolumeMounts:
       - name: dags
         mountPath: /opt/airflow/dags
-        subPath: dags
     # Use our own service account which has specified a secret for pulling images.
     serviceAccount:
       create: False
       name: airflow-sa
+
 
   triggerer:
+    # Limit the size of storage for logs
+    persistence:
+      size: 1Gi
     extraVolumes:
       - name: dags
         persistentVolumeClaim:
@@ -90,21 +98,7 @@ airflow:
     extraVolumeMounts:
       - name: dags
         mountPath: /opt/airflow/dags
-        subPath: dags
-    # Use our own service account which has specified a secret for pulling images.
-    serviceAccount:
-      create: False
-      name: airflow-sa
-
-  webserver:
-    extraVolumes:
-      - name: dags
-        persistentVolumeClaim:
-          claimName: airflow-dags-pvc # Volume with dags pulled by git-sync (running in a separate pod) and saved in that PV
-    extraVolumeMounts:
-      - name: dags
-        mountPath: /opt/airflow/dags
-        subPath: dags # Mount only a specific path from the volume
+        #subPath: dags
     # Use our own service account which has specified a secret for pulling images.
     serviceAccount:
       create: False
@@ -120,16 +114,19 @@ airflow:
     # Use the secret with the 'connection' key with the connection string to Postgres which will be used by Airflow to connect.
     metadataSecretName: airflow-postgres-connection
 
-  # Limit the size of storage for logs
-  workers:
-    persistence:
-      size: 1Gi
-
-  triggerer:
-    persistence:
-      size: 1Gi
-
   webserver:
+    extraVolumes:
+      - name: dags
+        persistentVolumeClaim:
+          claimName: airflow-dags-pvc # Volume with dags pulled by git-sync (running in a separate pod) and saved in that PV
+    extraVolumeMounts:
+      - name: dags
+        mountPath: /opt/airflow/dags
+        #subPath: dags
+    # Use our own service account which has specified a secret for pulling images.
+    serviceAccount:
+      create: False
+      name: airflow-sa
     # Use the LoadBalancer as a service for the web server, so we can access it through the internet from outside of the Kubernetes cluster
     service:
       type: LoadBalancer

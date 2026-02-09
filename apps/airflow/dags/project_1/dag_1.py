@@ -37,7 +37,7 @@ with DAG(
     dags_volume_mount = V1VolumeMount(
         name='dags-volume'
         ,mount_path='/opt/airflow/dags'
-        ,sub_path='dags'
+        #,sub_path='dags'
         ,read_only=True
     )
 
@@ -67,8 +67,8 @@ with DAG(
         #         )
         #     )
         # }
-        ,in_cluster=True
-        ,get_logs=True
-        ,is_delete_operator_pod=True
+        # ,in_cluster=True
+        # ,get_logs=True
+        # ,is_delete_operator_pod=True
     )
 
