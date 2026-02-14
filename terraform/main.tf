@@ -276,8 +276,8 @@ locals {
   })
 
 
-  # create_k8s_secrets.bash script for creating Kubernetes secrets
-  create_k8s_secrets = templatefile("template_files/create_k8s_secrets_template.bash", {
+  # create_k8s_secrets.sh script for creating Kubernetes secrets
+  create_k8s_secrets = templatefile("template_files/create_k8s_secrets_template.sh", {
     acr_url                     = module.acr.url                                  # ACR URL (<registry-name>.azurecr.io)
     client_id                   = module.service_principal.client_id              # Service Principal client ID
     client_secret               = module.service_principal.client_secret          # Service Principal client secret
@@ -301,7 +301,7 @@ resource "local_file" "local_files" {
     2 = {content = local.thrift_server_values, path = "../helm_charts/spark_thrift_server/values.yaml"}
     3 = {content = local.mlflow_setup_values, path = "../helm_charts/mlflow_setup/values.yaml"}
     4 = {content = local.mlflow_project_values, path = "../helm_charts/mlflow_project/values.yaml"}
-    5 = {content = local.create_k8s_secrets, path = "../create_k8s_secrets.bash"}
+    5 = {content = local.create_k8s_secrets, path = "../create_k8s_secrets.sh"}
   }
 
   content = each.value.content

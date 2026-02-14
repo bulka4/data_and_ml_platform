@@ -6,18 +6,25 @@
 
 # We create those config files using a ConfigMap and we will mount them into the pods running the Thrift Server and Hive Metastore.
 
+# Every value `${VAR_NAME}` will be replaced with the value of the environment variable `VAR_NAME` which we will set up in pods where that ConfigMap 
+# will be mounted (it will be done by Spark / Hive inside the image, not Kubernetes).
+
+# - ${CLIENT_ID} and ${CLIENT_SECRET} refers to credentials of a Service Principal with permissions for that Storage Account
+# - ${MY_ACCOUNT} is a name of our Storage Account
+# - ${TENANT_ID} - Our tenant ID from Azure
+
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: spark-conf
+  name: spark-conf-template
 data:
-  hive-site.xml: |
+  hive-site.xml.template: |
     <configuration>
 
       <property>
         <name>javax.jdo.option.ConnectionURL</name>
         <value>
-          jdbc:postgresql://{{ .Release.Name }}-postgresql:5432/{{ .Values.hive.database.name }}
+          jdbc:postgresql://hive-postgres:5432/{{ .Values.hive.database.name }}
         </value>
       </property>
 
@@ -54,21 +61,21 @@ data:
       </property>
 
     </configuration>
-    
-spark-defaults.conf: |
-	# Use Hive Metastore (not the in-memory catalog)
-	spark.sql.catalogImplementation=hive
-	
-	# Set where managed table data is stored (below is an Azure Storage Account URL)
-	spark.sql.warehouse.dir=wasb://{{ .Values.spark.containerName }}@${{ .Values.spark.storageAccountName }}.blob.core.windows.net
-	
-	# Configs for authentication to Azure Storage Account (to be able to read and save data)
-	spark.hadoop.fs.azure.account.auth.type.${MY_ACCOUNT}.dfs.core.windows.net=OAuth
-	
-	spark.hadoop.fs.azure.account.oauth.provider.type.${MY_ACCOUNT}.dfs.core.windows.net=org.apache.hadoop.fs.azurebfs.oauth2.ClientCredsTokenProvider
-	
-	spark.hadoop.fs.azure.account.oauth2.client.id.${MY_ACCOUNT}.dfs.core.windows.net=${CLIENT_ID}
-	
-	spark.hadoop.fs.azure.account.oauth2.client.secret.${MY_ACCOUNT}.dfs.core.windows.net=${CLIENT_SECRET}
-	
-	spark.hadoop.fs.azure.account.oauth2.client.endpoint.${MY_ACCOUNT}.dfs.core.windows.net=https://login.microsoftonline.com/${TENANT_ID}/oauth2/token
+
+  spark-defaults.conf: |
+    # Use Hive Metastore (not the in-memory catalog)
+    spark.sql.catalogImplementation=hive
+
+    # Set where managed table data is stored (below is an Azure Storage Account URL)
+    spark.sql.warehouse.dir=wasb://{{ .Values.spark.containerName }}@${{ .Values.spark.storageAccountName }}.blob.core.windows.net
+
+    # Configs for authentication to Azure Storage Account (to be able to read and save data)
+    spark.hadoop.fs.azure.account.auth.type.${MY_ACCOUNT}.dfs.core.windows.net=OAuth
+
+    spark.hadoop.fs.azure.account.oauth.provider.type.${MY_ACCOUNT}.dfs.core.windows.net=org.apache.hadoop.fs.azurebfs.oauth2.ClientCredsTokenProvider
+
+    spark.hadoop.fs.azure.account.oauth2.client.id.${MY_ACCOUNT}.dfs.core.windows.net=${CLIENT_ID}
+
+    spark.hadoop.fs.azure.account.oauth2.client.secret.${MY_ACCOUNT}.dfs.core.windows.net=${CLIENT_SECRET}
+
+    spark.hadoop.fs.azure.account.oauth2.client.endpoint.${MY_ACCOUNT}.dfs.core.windows.net=https://login.microsoftonline.com/${TENANT_ID}/oauth2/token

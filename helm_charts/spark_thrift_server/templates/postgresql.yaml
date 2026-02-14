@@ -1,0 +1,43 @@
+# PostgreSQL deployment which will serve as Airflow metadata db
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: hive-postgres
+  namespace: spark
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: hive-postgres
+  template:
+    metadata:
+      labels:
+        app: hive-postgres
+    spec:
+      containers:
+        - name: postgres
+          image: {{ .Values.postgresql.image }}
+          env:
+            - name: POSTGRES_USER
+              value: {{ .Values.postgresql.username }}
+            - name: POSTGRES_DB
+              value: {{ .Values.postgresql.database }}
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.postgresql.secret.name }}
+                  key: {{ .Values.postgresql.secret.userPasswordKey }}
+            - name: POSTGRES_POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.postgresql.secret.name }}
+                  key: {{ .Values.postgresql.secret.adminPasswordKey }}
+          ports:
+            - containerPort: 5432
+          volumeMounts:
+            - name: pgdata
+              mountPath: /bitnami/postgresql
+      volumes:
+        - name: pgdata
+          emptyDir: {}

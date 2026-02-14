@@ -5,8 +5,8 @@ type: application
 version: 0.1.0
 appVersion: "3.1.3"
 
-dependencies:
-  # Install PostgreSQL Helm chart which will serve as metadata db
-  - name: postgresql
-    version: 15.5.21
-    repository: https://charts.bitnami.com/bitnami
+# dependencies:
+#   # Install PostgreSQL Helm chart which will serve as metadata db
+#   - name: postgresql
+#     version: 15.5.21
+#     repository: https://charts.bitnami.com/bitnami

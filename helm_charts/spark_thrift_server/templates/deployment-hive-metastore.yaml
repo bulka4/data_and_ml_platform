@@ -15,26 +15,74 @@ spec:
       # Get a secret with credentials for authentication to the ACR.
       imagePullSecrets:
         - name: {{ .Values.acrSecret.secretName }}
-      containers:
-        - name: hive-metastore
-          image: "{{ .Values.hive.image.repository }}:{{ .Values.hive.image.tag }}"
-          imagePullPolicy: {{ .Values.hive.image.pullPolicy }}
-          command: ["hive"]
-          args: ["--service", "metastore"]
-          ports:
-            - containerPort: {{ .Values.hive.metastorePort }}
+      initContainers:
+        - name: fix-tmp-permissions
+          image: alpine:latest
+          command:
+            - sh
+            - -c
+            - |
+              # Set required permissions (every user will be able to write, read and execute files from this folder)
+              chmod -R 777 /tmp/hive || true
+              
+              # Install envsubst
+              apk add --no-cache gettext
+
+              # Interpolate the template config file (insert values of env vars)
+              envsubst < /opt/hive/conf/template/hive-site.xml.template > /opt/hive/conf/hive-site.xml
+
+              # Connect to PostgreSQL db and create required tables (if this is not done automatically by the image)
+              # schematool -dbType postgres -initSchema || true
+          volumeMounts:
+            - name: spark-conf-template
+              mountPath: /opt/hive/conf/template
+            - name: hive-conf
+              mountPath: /opt/hive/conf
+            - name: tmp-volume
+              mountPath: /tmp/hive
           env:
-	        # Password to the PostgreSQL metadata db from the secret
+            # Password to the PostgreSQL metadata db from the secret. It is used in the hive-site.xml created in the configMap
             - name: DB_PASSWORD
               valueFrom:
                 secretKeyRef:
-                  name: hive-metastore-db-secret
-                  key: hive-password
+                  name: {{ .Values.postgresql.secret.name }}
+                  key: {{ .Values.postgresql.secret.userPasswordKey }}
+      containers:
+        - name: hive-metastore
+          image: "{{ .Values.hive.image.url }}:{{ .Values.hive.image.tag }}"
+          imagePullPolicy: {{ .Values.hive.image.pullPolicy }}
+          # command: ["hive"]
+          # args: ["--service", "metastore"]
+          ports:
+            - containerPort: {{ .Values.hive.metastorePort }}
+          env:
+            # Limit heap size (how much memory JAVA processes can take). If this limit is exceeded then JAVA process gets killed,
+            # not the entire pod
+            - name: HADOOP_HEAPSIZE
+              value: "2048" # MB
+            - name: HIVE_HEAPSIZE
+              value: "2048" # MB
+            # Indicate to use PostgreSQL as metadata db
+            - name: DB_DRIVER
+              value: postgres
           # Mount the hive-site.xml created in the ConfigMap
           volumeMounts:
-            - name: spark-conf
+            - name: hive-conf
               mountPath: /opt/hive/conf
+            - name: tmp-volume
+              mountPath: /tmp/hive
+          resources:
+            requests:
+              memory: {{ .Values.hive.resources.requests.memory }}
+              cpu: {{ .Values.hive.resources.requests.cpu }}
+            limits:
+              memory: {{ .Values.hive.resources.limits.memory }}
+              cpu: {{ .Values.hive.resources.limits.cpu }}
       volumes:
-        - name: spark-conf
+        - name: spark-conf-template
           configMap:
-            name: spark-conf
+            name: spark-conf-template
+        - name: tmp-volume
+          emptyDir: {}
+        - name: hive-conf
+          emptyDir: {}
