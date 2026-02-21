@@ -5,117 +5,118 @@ module resource_group {
     location = var.location
 }
 
-
-# Log Analytics workspace for AKS monitoring
-resource "azurerm_log_analytics_workspace" "law" {
-  name                = "aks-law"
-  location            = module.resource_group.location
-  resource_group_name = module.resource_group.name
-  sku                 = "PerGB2018"
-  retention_in_days   = 30
-}
-
-
-# AKS Cluster
-resource "azurerm_kubernetes_cluster" "aks" {
-  name                = var.aks_name
-  location            = module.resource_group.location
-  resource_group_name = module.resource_group.name
-  dns_prefix          = "${var.aks_name}-dns"
-
-  default_node_pool {
-    name       = "system"
-    node_count = var.node_count
-    vm_size    = var.node_vm_size
-
-    # os_type, and other options can be customized
-    type                = "VirtualMachineScaleSets"
-    os_disk_size_gb     = 256
-    enable_auto_scaling = false
-    # For production, consider using node labels, taints, and autoscaling
-  }
-
-  # An AD identity which can be used by AKS to access other Azure resources.
-  identity {
-    type = "SystemAssigned"
-  }
-
-  # Set up a OMS Agent which sents container monitoring data to the Log Analytics Workspace.
-  oms_agent {
-    log_analytics_workspace_id = azurerm_log_analytics_workspace.law.id
-  }
-
-  # Enable RBAC authorization in a cluster. We will be able to create Roles and Roles Bindings in a cluster.
-  role_based_access_control_enabled = true
-
-  network_profile {
-    network_plugin = "azure"          # azure CNI; use "kubenet" if desired
-    load_balancer_sku = "standard"
-    outbound_type = "loadBalancer"
-  }
-
-  kubernetes_version = var.kubernetes_version
-
-  tags = {
-    environment = "dev"
-    created_by  = "terraform"
-  }
-}
+/*
+        # Log Analytics workspace for AKS monitoring
+        resource "azurerm_log_analytics_workspace" "law" {
+          name                = "aks-law"
+          location            = module.resource_group.location
+          resource_group_name = module.resource_group.name
+          sku                 = "PerGB2018"
+          retention_in_days   = 30
+        }
 
 
-# Create an ACR where we will be storing a Docker image used for deploying all the apps.
-module "acr" {
-  source = "./modules/acr"
-  acr_name                = var.acr_name
-  resource_group_name     = var.resource_group_name
-  resource_group_location = var.location
-}
+        # AKS Cluster
+        resource "azurerm_kubernetes_cluster" "aks" {
+          name                = var.aks_name
+          location            = module.resource_group.location
+          resource_group_name = module.resource_group.name
+          dns_prefix          = "${var.aks_name}-dns"
+
+          default_node_pool {
+            name       = "system"
+            node_count = var.node_count
+            vm_size    = var.node_vm_size
+
+            # os_type, and other options can be customized
+            type                = "VirtualMachineScaleSets"
+            os_disk_size_gb     = 256
+            enable_auto_scaling = false
+            # For production, consider using node labels, taints, and autoscaling
+          }
+
+          # An AD identity which can be used by AKS to access other Azure resources.
+          identity {
+            type = "SystemAssigned"
+          }
+
+          # Set up a OMS Agent which sents container monitoring data to the Log Analytics Workspace.
+          oms_agent {
+            log_analytics_workspace_id = azurerm_log_analytics_workspace.law.id
+          }
+
+          # Enable RBAC authorization in a cluster. We will be able to create Roles and Roles Bindings in a cluster.
+          role_based_access_control_enabled = true
+
+          network_profile {
+            network_plugin = "azure"          # azure CNI; use "kubenet" if desired
+            load_balancer_sku = "standard"
+            outbound_type = "loadBalancer"
+          }
+
+          kubernetes_version = var.kubernetes_version
+
+          tags = {
+            environment = "dev"
+            created_by  = "terraform"
+          }
+        }
 
 
-# Storage account for system files:
-#   - Airflow logs
-#   - Airflow DAGs code
-locals {
-  system_files_sa_name = "systemfilesbulka"
-}
-
-module "system_files_sa" {
-  source = "./modules/storage_account"
-  resource_group_name = module.resource_group.name
-  resource_group_location = module.resource_group.location
-  storage_account_name = local.system_files_sa_name
-}
+        # Create an ACR where we will be storing a Docker image used for deploying all the apps.
+        module "acr" {
+          source = "./modules/acr"
+          acr_name                = var.acr_name
+          resource_group_name     = var.resource_group_name
+          resource_group_location = var.location
+        }
 
 
-# Container for Airflow logs
-locals {
-  airflow_logs_container_name = "airflow-logs"
-}
+        # Storage account for system files:
+        #   - Airflow logs
+        #   - Airflow DAGs code
+        locals {
+          system_files_sa_name = "systemfilesbulka"
+        }
 
-module "airflow_logs_container" {
-  source = "./modules/sa_container"
-  name = local.airflow_logs_container_name
-  storage_account_name = module.system_files_sa.name
-}
+        module "system_files_sa" {
+          source = "./modules/storage_account"
+          resource_group_name = module.resource_group.name
+          resource_group_location = module.resource_group.location
+          storage_account_name = local.system_files_sa_name
+        }
 
 
-# File share for Airflow DAGs code
-module "dags_fs" {
-  source = "./modules/sa_file_share"
-  name = "airflow-dags"
-  storage_account_name = module.system_files_sa.name
-}
+        # Container for Airflow logs
+        locals {
+          airflow_logs_container_name = "airflow-logs"
+        }
 
+        module "airflow_logs_container" {
+          source = "./modules/sa_container"
+          name = local.airflow_logs_container_name
+          storage_account_name = module.system_files_sa.name
+        }
+
+
+        # File share for Airflow DAGs code
+        module "dags_fs" {
+          source = "./modules/sa_file_share"
+          name = "airflow-dags"
+          storage_account_name = module.system_files_sa.name
+        }
+*/
 
 
 # Storage account for containers:
 #   - DWH - Data warehouse data
 #   - mlflow - MLflow artifacts
 module "dwh_sa" {
-  source = "./modules/storage_account"
-  resource_group_name = module.resource_group.name
+  source                  = "./modules/storage_account"
+  resource_group_name     = module.resource_group.name
   resource_group_location = module.resource_group.location
-  storage_account_name = "dwhbulka"
+  storage_account_name    = "dwhbulka"
+  gen2                    = true
 }
 
 # Container for DWH (data warehouse). We will keep there data used for Spark calculations.
@@ -125,13 +126,14 @@ module "dwh_container" {
   storage_account_name = module.dwh_sa.name
 }
 
-# Container for MLflow artifacts
-module "mlflow_container" {
-  source = "./modules/sa_container"
-  name = "mlflow"
-  storage_account_name = module.dwh_sa.name
-}
-
+/*
+        # Container for MLflow artifacts
+        module "mlflow_container" {
+          source = "./modules/sa_container"
+          name = "mlflow"
+          storage_account_name = module.dwh_sa.name
+        }
+*/
 
 # Service Principal for authentication. It is going to have assigned the following roles and scopes:
 # - Role 'acrpush' with scope for ACR - Enable pulling images from ACR when deploying pods on Kubernetes
@@ -183,7 +185,7 @@ locals {
     aks_name        = azurerm_kubernetes_cluster.aks.name
 
     acr_sp_id       = module.service_principal.client_id
-    acr_sp_secret = module.service_principal.client_secret
+    acr_sp_secret   = module.service_principal.client_secret
     acr_name        = module.acr.name
     
     tenant_id       = data.azurerm_client_config.current.tenant_id
@@ -232,8 +234,15 @@ locals {
   thrift_server_values = templatefile("template_files/helm_charts/values-thrift-server.yaml", {
     spark_image_name = local.spark_image_name
 
-    sa_name        = module.dwh_sa.name        # Name of the Storage Account where data used for Spark calculations will be saved
-    sa_container_name = module.dwh_container.name # Name of the container where data used for Spark calculations will be saved
+    sa_name           = module.dwh_sa.name        # Name of the Storage Account where Hive warehouse data used for Spark calculations will be saved
+    sa_container_name = module.dwh_container.name # Name of the container where Hive warehouse data used for Spark calculations will be saved
+  })
+
+
+  # values.yaml for the Hive Helm chart
+  hive_values = templatefile("template_files/helm_charts/values-hive.yaml", {
+    sa_name           = module.dwh_sa.name        # Name of the Storage Account where data used for Spark calculations will be saved
+    sa_container_name = module.dwh_container.name # Name of the container in the Storage Account where data used for Spark calculations will be saved
   })
 
 
@@ -278,13 +287,16 @@ locals {
 
   # create_k8s_secrets.sh script for creating Kubernetes secrets
   create_k8s_secrets = templatefile("template_files/create_k8s_secrets_template.sh", {
-    acr_url                     = module.acr.url                                  # ACR URL (<registry-name>.azurecr.io)
-    client_id                   = module.service_principal.client_id              # Service Principal client ID
-    client_secret               = module.service_principal.client_secret          # Service Principal client secret
-    tenant_id                   = data.azurerm_client_config.current.tenant_id    # Azure tenant ID
-    storage_account_name        = module.system_files_sa.name                     # Name of the Storage Account used for Airflow logs
-    storage_account_access_key  = module.system_files_sa.primary_access_key       # Access key to the Storage Account
-    sa_container_name           = local.airflow_logs_container_name               # Name of the container in the Storage Account for Airflow logs
+    acr_url             = module.acr.url                                  # ACR URL (<registry-name>.azurecr.io)
+    client_id           = module.service_principal.client_id              # Service Principal client ID
+    client_secret       = module.service_principal.client_secret          # Service Principal client secret
+    tenant_id           = data.azurerm_client_config.current.tenant_id    # Azure tenant ID
+    
+    system_files_sa     = module.system_files_sa.name                     # Name of the Storage Account used for Airflow logs
+    system_files_sa_key = module.system_files_sa.primary_access_key       # Access key to the Storage Account
+
+    dwh_sa              = module.dwh_sa.name                              # Name of the Storage Account used for Spark data warehouse data
+    dwh_sa_access_key   = module.dwh_sa.primary_access_key                # Access key to the Storage Account
 
     acr_secret_name = "acr-secret"
   })
@@ -299,9 +311,10 @@ resource "local_file" "local_files" {
     0 = {content = local.dockerfile_interacting_aks, path = "../interacting.aks.Dockerfile"}
     1 = {content = local.airflow_chart_values, path = "../helm_charts/airflow/values.yaml"}
     2 = {content = local.thrift_server_values, path = "../helm_charts/spark_thrift_server/values.yaml"}
-    3 = {content = local.mlflow_setup_values, path = "../helm_charts/mlflow_setup/values.yaml"}
-    4 = {content = local.mlflow_project_values, path = "../helm_charts/mlflow_project/values.yaml"}
-    5 = {content = local.create_k8s_secrets, path = "../create_k8s_secrets.sh"}
+    3 = {content = local.hive_values, path = "../helm_charts/hive_metastore/values.yaml"}
+    4 = {content = local.mlflow_setup_values, path = "../helm_charts/mlflow_setup/values.yaml"}
+    5 = {content = local.mlflow_project_values, path = "../helm_charts/mlflow_project/values.yaml"}
+    6 = {content = local.create_k8s_secrets, path = "../create_k8s_secrets.sh"}
   }
 
   content = each.value.content

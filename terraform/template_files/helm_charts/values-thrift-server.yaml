@@ -1,35 +1,27 @@
 # Variables for Spark Thrift Server
+namespace: spark
+
 spark:
-  # URL of the Spark Docker image from a container registry
-  sparkImageUrl: ${spark_image_name}
+  image:
+    # URL of the Spark Docker image from a container registry
+    # sparkImageUrl: ${spark_image_name}
+    url: spark-thrift-server:latest
+    pullPolicy: IfNotPresent
+  serviceAccountName: spark-thrift-sa
+  serviceName: spark-thrift-server
   # Storage Account and container for storing data used by Spark
-  storageAccountName: ${sa_name}
-  containerName: ${sa_container_name}
+  # storageAccountName: ${sa_name}
+  # containerName: ${sa_container_name}
+  storageAccountSecret: adls-sp-secret
+  # This must match what is set up in Hive's deployment, hive-site.xml, the hive.metastore.warehouse.dir config
+  warehouseDir: abfss://${sa_container_name}@${sa_name}.dfs.core.windows.net/hive-warehouse
 
 # Variables for Hive Metastore
 hive:
-  image:
-    repository: apache/hive
-    tag: 3.1.3
-    pullPolicy: IfNotPresent
-  metastorePort: 9083
-  # Name of the database in PostgreSQL db with metadata and name of the user who is the owner of that database
-  database:
-    name: hive
-    user: hive
-
-# Variables for PostgreSQL which will be used as Hive Metastore metadata db
-postgresql:
-  auth:
-    username: hive # Set up the POSTGRES_USER env var (user who is an owner of the created database)
-    database: hive # Set up the POSTGRES_DB env var (name of the created database)
-    # Set up passwords from the secret
-    existingSecret: hive-metastore-db-secret # Name of the secret
-    secretKeys:
-      adminPasswordKey: postgres-password # Set up POSTGRES_POSTGRES_PASSWORD env var (password for the `postgres` superuser (admin))
-      userPasswordKey: hive-password # Set up POSTGRES_PASSWORD env var (password for the created user)
-      
+  # URL of the format: thrift://<hive-metastore-DNS>:9083, where <hive-metastore-DNS> is a DNS name of the server running Hive Metastore
+  # If we have many metastores, we can provide multiple URLs: url_1,url2,...
+  metastoreUris: thrift://hive-metastore:9083 
 
 # Variables related to the ACR where we keep Docker images which will be deployed in pods
 acrSecret:
-	secretName: acr-secret
+  secretName: acr-secret

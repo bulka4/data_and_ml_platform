@@ -78,9 +78,38 @@ airflow:
       - name: dags
         persistentVolumeClaim:
           claimName: airflow-dags-pvc
+      # Ephemeral volume to share dags with the worker container
+      - name: tmp-dags
+        emptyDir: {}
+    # extraVolumeMounts:
+    #   - name: dags
+    #     mountPath: /opt/airflow/dags
     extraVolumeMounts:
-      - name: dags
+      - name: tmp-dags
         mountPath: /opt/airflow/dags
+    # Container into which PVC with dags is mounted and copies dags into an ephemeral volume which is then accessed by
+    # the worker container
+    extraContainers:
+      - name: copier
+        image: alpine:3.19
+        command:
+          - sh
+          - -c
+          - |
+            # Install rsync
+            apk add --no-cache rsync
+
+            while true; do
+              # Copy file differences from a PV into an ephemeral volume
+              # Remove files at target which are not present at the source anymore
+              rsync -a --delete /mnt/remote_dags/ /tmp/dags/
+              sleep 60
+            done
+        volumeMounts:
+          - name: tmp-dags
+            mountPath: /tmp/dags
+          - name: dags
+            mountPath: /mnt/remote_dags
     # Use our own service account which has specified a secret for pulling images.
     serviceAccount:
       create: False

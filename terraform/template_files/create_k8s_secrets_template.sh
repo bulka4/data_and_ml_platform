@@ -9,8 +9,8 @@ POSTGRES_DNS=airflow-postgres   # DNS name of PostgreSQL (name of the kubernetes
 
 
 
-# Create namespaces and a secret for pulling images from ACR. It uses credentials of a Service Principal with proper permissions.
-# We have here the following arguments:
+# Create namespaces and a secret for pulling images from ACR. It uses credentials of a Service Principal with proper permissions
+# ('acrpush' role). We have here the following arguments:
 	# - docker-server: ACR URL (<registry-name>.azurecr.io)
 	# - docker-username: Service Principal client ID
 	# - docker-password: Service Principal client secret
@@ -27,12 +27,14 @@ for ns in "airflow" "spark" "mlflow"; do
 done
 
 
+# ===================== Airflow =====================
+
 # Create a secret used by Airflow to access Storage Account to save logs there. 
 # It uses credentials of a Service Principal with proper permissions.
 # account_name is a name of the Storage Account for Airflow logs
 kubectl create secret generic airflow-azure-blob \
-  --from-literal=azurestorageaccountname=${storage_account_name} \
-  --from-literal=azurestorageaccountkey=${storage_account_access_key} \
+  --from-literal=azurestorageaccountname=${system_files_sa} \
+  --from-literal=azurestorageaccountkey=${system_files_sa_key} \
   -n airflow
 
 
@@ -48,3 +50,24 @@ kubectl create secret generic airflow-postgres \
 	--from-literal=postgres_password=$${POSTGRES_PASSWORD} \
 	--from-literal=postgres_database=$${POSTGRES_DB} \
 	-n airflow
+
+
+
+
+# ===================== Spark =====================
+
+# Service Principal's credentials which will be used by Spark and Hive to connect to the Storage Account.
+# They will be used in the spark-defaults.conf and core-site.xml files
+kubectl create secret generic adls-sp-secret \
+  --from-literal=client-id=${client_id} \
+  --from-literal=client-secret=${client_secret} \
+  --from-literal=tenant-id=${tenant_id} \
+  --from-literal=storage-account=${dwh_sa} \
+  --from-literal=sa-access-key=${dwh_sa_access_key}
+  -n spark
+
+# Secret for Hive Metastore for accessing PostgreSQL metadata db:
+kubectl create secret generic hive-metastore-db-secret \
+  --from-literal=hive-password=hivepassword \
+  --from-literal=postgres-password=adminpassword \
+  -n spark

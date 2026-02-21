@@ -13,8 +13,8 @@ spec:
         app: {{ include "hive-metastore.fullname" . }}
     spec:
       # Get a secret with credentials for authentication to the ACR.
-      imagePullSecrets:
-        - name: {{ .Values.acrSecret.secretName }}
+      # imagePullSecrets:
+      #   - name: {{ .Values.acrSecret.secretName }}
       initContainers:
         - name: fix-tmp-permissions
           image: alpine:latest
@@ -22,19 +22,19 @@ spec:
             - sh
             - -c
             - |
-              # Set required permissions (every user will be able to write, read and execute files from this folder)
-              chmod -R 777 /tmp/hive || true
+              # Set required permissions (every user will be able to write, read and execute files from this folder).
+              # Looks like for now it is not needed.
+              # chmod -R 755 /tmp/hive || true
+              # chown -R hive:hive /opt/hive || true
+              # chmod -R 755 /opt/hive || true
               
               # Install envsubst
               apk add --no-cache gettext
 
               # Interpolate the template config file (insert values of env vars)
               envsubst < /opt/hive/conf/template/hive-site.xml.template > /opt/hive/conf/hive-site.xml
-
-              # Connect to PostgreSQL db and create required tables (if this is not done automatically by the image)
-              # schematool -dbType postgres -initSchema || true
           volumeMounts:
-            - name: spark-conf-template
+            - name: conf-template
               mountPath: /opt/hive/conf/template
             - name: hive-conf
               mountPath: /opt/hive/conf
@@ -51,8 +51,7 @@ spec:
         - name: hive-metastore
           image: "{{ .Values.hive.image.url }}:{{ .Values.hive.image.tag }}"
           imagePullPolicy: {{ .Values.hive.image.pullPolicy }}
-          # command: ["hive"]
-          # args: ["--service", "metastore"]
+          # command: ["sh", "-c", "sleep 3600"]
           ports:
             - containerPort: {{ .Values.hive.metastorePort }}
           env:
@@ -65,6 +64,9 @@ spec:
             # Indicate to use PostgreSQL as metadata db
             - name: DB_DRIVER
               value: postgres
+            # Run only Metastore
+            - name: SERVICE_NAME
+              value: metastore
           # Mount the hive-site.xml created in the ConfigMap
           volumeMounts:
             - name: hive-conf
@@ -79,9 +81,9 @@ spec:
               memory: {{ .Values.hive.resources.limits.memory }}
               cpu: {{ .Values.hive.resources.limits.cpu }}
       volumes:
-        - name: spark-conf-template
+        - name: conf-template
           configMap:
-            name: spark-conf-template
+            name: conf-template
         - name: tmp-volume
           emptyDir: {}
         - name: hive-conf

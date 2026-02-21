@@ -5,4 +5,6 @@ resource "azurerm_storage_account" "my_storage_account" {
   resource_group_name      = var.resource_group_name
   account_tier             = "Standard"
   account_replication_type = "LRS"
+  # Enable ADLS Gen2
+  is_hns_enabled = var.gen2
 }
