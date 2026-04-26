@@ -15,16 +15,27 @@ POSTGRES_DNS=airflow-postgres   # DNS name of PostgreSQL (name of the kubernetes
 	# - docker-username: Service Principal client ID
 	# - docker-password: Service Principal client secret
 	# - docker-email: It doesn't matter what we put here but it is needed
-for ns in "airflow" "spark" "mlflow"; do
+for ns in "airflow" "spark" "mlflow" "git-sync"; do
 	kubectl create namespace $ns
 	
-	kubectl create secret docker-registry ${acr_secret_name} \
-		--namespace $ns \
-		--docker-server=${acr_url} \
-		--docker-username=${client_id} \
-		--docker-password=${client_secret} \
-		--docker-email=unused@example.com
+	# if [ "$ns" != "git-sync"  ]; then
+		# kubectl create secret docker-registry ${acr_secret_name} \
+		# 	--namespace $ns \
+		# 	--docker-server=${acr_url} \
+		# 	--docker-username=${client_id} \
+		# 	--docker-password=${client_secret} \
+		# 	--docker-email=unused@example.com
+	# fi
 done
+
+
+# ===================== git-sync =====================
+
+# Secret used by the git-sync PV to connect to Azure File Share
+kubectl create secret generic azure-storage-account \
+  --from-literal=azurestorageaccountname=${system_files_sa} \
+  --from-literal=azurestorageaccountkey=${system_files_sa_key} \
+  -n git-sync
 
 
 # ===================== Airflow =====================
@@ -32,10 +43,10 @@ done
 # Create a secret used by Airflow to access Storage Account to save logs there. 
 # It uses credentials of a Service Principal with proper permissions.
 # account_name is a name of the Storage Account for Airflow logs
-kubectl create secret generic airflow-azure-blob \
-  --from-literal=azurestorageaccountname=${system_files_sa} \
-  --from-literal=azurestorageaccountkey=${system_files_sa_key} \
-  -n airflow
+# kubectl create secret generic airflow-azure-blob \
+#   --from-literal=azurestorageaccountname=${system_files_sa} \
+#   --from-literal=azurestorageaccountkey=${system_files_sa_key} \
+#   -n airflow
 
 
 # Create a secret used by Airflow to connect to PostgreSQL metadata db
@@ -59,11 +70,8 @@ kubectl create secret generic airflow-postgres \
 # Service Principal's credentials which will be used by Spark and Hive to connect to the Storage Account.
 # They will be used in the spark-defaults.conf and core-site.xml files
 kubectl create secret generic adls-sp-secret \
-  --from-literal=client-id=${client_id} \
-  --from-literal=client-secret=${client_secret} \
-  --from-literal=tenant-id=${tenant_id} \
   --from-literal=storage-account=${dwh_sa} \
-  --from-literal=sa-access-key=${dwh_sa_access_key}
+  --from-literal=sa-access-key=${dwh_sa_access_key} \
   -n spark
 
 # Secret for Hive Metastore for accessing PostgreSQL metadata db:
@@ -71,3 +79,16 @@ kubectl create secret generic hive-metastore-db-secret \
   --from-literal=hive-password=hivepassword \
   --from-literal=postgres-password=adminpassword \
   -n spark
+
+
+
+# ===================== MLflow =====================
+
+kubectl create secret generic artifact-store \
+  --from-literal=sa-access-key=${dwh_sa_access_key} \
+  -n mlflow
+
+kubectl create secret generic postgres-backend-store \
+  --from-literal=user-password=mlflow \
+  --from-literal=admin-password=mlflow \
+  -n mlflow

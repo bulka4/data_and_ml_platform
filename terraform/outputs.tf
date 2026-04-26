@@ -17,12 +17,13 @@ output "dwh_sa_access_key" {
   value = module.dwh_sa.primary_access_key
   sensitive = true
 }
+/*
+      output "system_files_sa_access_key" {
+        value = module.system_files_sa.primary_access_key
+        sensitive = true
+      }
 
-output "system_files_sa_access_key" {
-  value = module.system_files_sa.primary_access_key
-  sensitive = true
-}
-
-output "acr_url" {
-  value = module.acr.url
-}
+      output "acr_url" {
+        value = module.acr.url
+      }
+*/
