@@ -2,36 +2,24 @@ Tags: [[_My_projects]]
 #MyProjects 
 
 # Introduction
-Clients (like dbt) can connect to the Spark Thrift Server ([[Spark Thrift Server - How clients connect|link]]) and send SQL queries to execute using JDBC or ODBC drivers which uses Thrift protocol.
+We use Spark Thrift server, which is a long-running Spark driver, together with dbt for data transformations. 
 
-Thrift Server uses Iceberg to retrieve necessary metadata to execute SQL queries.
-
-Optionally, Thrift Server could use also Hive Metastore but it is not currently implemented (but code is prepared). More info about it can be found here - [[Data and ML platform project - Hive Metastore setup]].
+dbt (and other clients) can send SQL queries to the Thrift server which will execute them in a distributed way.
 # Why to use Spark Thrift Server
 For data transformation we use dbt and Spark. It is better to use Thrift Server rather than Spark Operator because with the Thrift Server we have a persistent Spark session while Spark Operator creates a new session for every dbt run.
 
 Why it is better to have a persistent session is described here - [[dbt with Spark]].
-# Iceberg catalog
-In the `spark-defaults.conf` file, we:
-- Create an Iceberg catalog called `iceberg_catalog`
-- Make it a default catalog by setting up `spark.sql.defaultCatalog=iceberg_catalog`
+# Metadata management
+Thrift Server uses Iceberg to retrieve necessary metadata to execute SQL queries.
 
-This causes that:
-- Every table created without specifying a catalog, will automatically be placed in this catalog
-- Every table created in the Iceberg catalog is an Iceberg table
-
-This is used by dbt, because it looks like in dbt we can't specify in which catalog to save data, it only uses the default one.
-
-This also helps when saving data using the Python `pyhive` library - saved data is automatically an iceberg table.
-
-If Iceberg catalog is not a default catalog in Spark, then dbt saves data in the `spark_catalog` catalog.
-# Iceberg config
-We specify configs for Iceberg in the `spark-defaults.conf` file.
-# Iceberg default schema init
-Before we start using Spark Thrift server (for example when we want to execute a SQL query using Beeline or dbt) with Iceberg catalog set up as a default one, we need to have already created the `default` schema in this catalog. Otherwise, we get an error that this schema doesn't exist.
-
-That's why we run the `init_iceberg_schema.py` python script (baked in the Spark image) in an init container in the Spark's pod which creates that schema. That script is able to run a SQL query for creating a schema because it creates a Spark session without Iceberg catalog set up as a default one.
-# Datawarehouse
+Optionally, we could use also Hive Metastore for handling metadata but it is not currently implemented (but code is prepared). More info about it can be found here - [[Data and ML platform project - Hive Metastore setup|link]].
+# Spark execution mode
+Spark Thrift Server runs in a cluster mode with Kubernetes as a master, so each Spark worker can be run on a different node in the cluster and it runs in a pod prepared by Kubernetes.
+# Communication with Spark Thrift server
+Clients (like dbt) can connect to the Spark Thrift Server ([[Spark Thrift Server - How clients connect|link]]) and send SQL queries to execute using JDBC or ODBC drivers which uses Thrift protocol.
+# Iceberg setup
+When configuring Spark, we also configure Iceberg as described here - [[Data and ML platform project - Iceberg storage framework setup]].
+# Data warehouse
 For data storage we use Azure Storage Account ADLS Gen2.
 
 It is specified in the `spark-defaults.conf` file as the `spark.sql.catalog.iceberg_catalog.warehouse` config.

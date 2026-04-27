@@ -24,3 +24,5 @@ That gives us access to the shell session inside the pod so we can run shell com
 We can attach VS Code to the created development pods and from it we can edit pod's files and run shell commands.
 
 How to use VS Code Kubernetes extension, to attach VS Code to a pod as described here - [[Data and ML platform project - VS Code Kubernetes extension setup for code development]].
+# Other tools we can use for code development
+Other tools that we can use for code development on Kubernetes are listed and explained here - [[Kubernetes - Code development|link]].

@@ -1,6 +1,20 @@
 Tags: [[_My_projects]]
 #MyProjects 
 
+# Introduction
+We deploy Airflow using the official Helm chart. Thanks to that, each Airflow component runs in a separate pod:
+- Scheduler
+- Webserver
+- Workers
+- etc.
+
+PostgreSQL is used as a metadata database and is deployed separately in the same chart.
+
+Also, to make DAGs code available for Airflow components, we can:
+- Use git-sync (deployed using a separate Helm chart) which pulls code regularly
+- Mount files from the host using a PV with a `hostPath`
+
+more info about making code available in pods in general is here - [[Data and ML platform project - Making code available in pods|link]].
 # Accessing Airflow webserver
 We can access Airflow UI at the `localhost:8080` URL.
 
@@ -32,6 +46,12 @@ Then, the traffic will go like this:
 - host port (port on the host specified in the `kind-config.yaml`) ->
 - container port / node port (port in the kind node container, specified in the `kind-config.yaml` as `containerPort` and in the service as `nodePort`) ->
 - target port (port in the container running in the kind cluster, specified in the service)
+# Helm chart
+To deploy Airflow on Kubernetes we use the official Helm chart. It is used as a dependency in the `helm_charts/airflow/Chart.yaml` file.
+## values.yaml
+The `values.yaml` file will be provided for that chart in the `helm_charts/airflow` folder and it will be created by Terraform ([[Data and ML platform project - Preparing files with Terraform|link]]).
+
+It interpolates the `terraform/template_files/helm_charts/values-airflow.yaml` template to create it ((inserts variables values into the template file). 
 # Mounting DAGs code into Airflow pods
 To make DAGs code available for Airflow, we need to mount a folder from the local host. There are two approaches:
 - Mount the `apps` folder to have local files available
@@ -53,7 +73,7 @@ More info about it can be found here - [[Data and ML platform project - Making c
 # Metadata db
 We create a PostgreSQL db for Airflow metadata as a separate deployment in the same Helm chart.
 
-We do this so we don't pay for a managed service but for production it is recommended to use a managed service since running a database on Kubernetes is problematic as described here - [[Kubernetes - Running databases]].
+For production, it is worth considering using a managed Postgres service as running databases on Kubernetes has challenges as described here - [[Kubernetes - Running databases]].
 # Service account
 We create a service account which will be used by Airflow pods for creating new pods where tasks will be executed. 
 

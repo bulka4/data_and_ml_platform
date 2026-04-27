@@ -2,10 +2,12 @@ Tags: [[_My_projects]]
 #MyProjects 
 
 # Introduction
-For using dbt with Airflow we have a few options:
+For running dbt with Airflow we have few options:
 - Build all the dbt models in one pod created by Airflow pod operator
 - Split dbt project into multiple parts and build each of them in a separate pod created by Airflow, as a separate Airflow task (specify in pods which parts dbt should run). For example each part can consists of models with a specific tag and we can build only those models with one command.
 - Use cosmos so each dbt model becomes a separate Airflow task and runs in a separate pod
+# Running dbt as a Kubernetes job
+Airflow task can run a Kubernetes job which will run dbt code. More information about it can be found here - [[Data and ML platform project - Airflow - How to build workflows|link]].
 # Cosmos
 Pros of using cosmos:
 - Each task (each table to build) is separated from others, we can assign to it different resources and retry it in case of failure without restarting the rest of models dbt builds

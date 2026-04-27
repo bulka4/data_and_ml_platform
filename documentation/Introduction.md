@@ -2,7 +2,7 @@ Tags: [[_My_projects]]
 #MyProjects 
 
 # Introduction
-This platform can be used for:
+In this project we build a platform which can be used for:
 - Data ingestion - Using Python scripts
 - Data storage - Using Azure Data Lake Gen2 (object data storage)
 - Distributed data transformation - Using Spark
@@ -13,6 +13,8 @@ This platform can be used for:
 
 It is designed to be deployed on Kubernetes.
 
+We also build an example data and ML pipeline using this platform.
+
 Technologies used:
 - Containers and orchestration - Docker and Kubernetes
 - IaC - Terraform
@@ -21,11 +23,14 @@ Technologies used:
 - Data storage - Iceberg, Azure Data Lake Gen2
 - MLOps - MLflow
 - Programming languages - Python, SQL
+# Platform overview
+Here is a high level overview of the most important features of this platform - [[Data and ML platform project - Platform overview]].
 # Benefits of the tools used
 Benefits of the tools used in this platform:
 - Airflow - [[Data and ML platform project - Airflow - Benefits and key features]]
 - dbt - [[Data and ML platform project - dbt benefits]]
 - Spark enables partitioning data what has benefits described here - [[Data Engineering - Partition-based writes]].
+- Spark Operator - [[Spark Operator - Pros and cons]]
 - Iceberg - [[Iceberg - Benefits]]
 	- Hive vs Iceberg comparison - [[Iceberg vs Hive]]
 - MLflow - [[Data and ML platform project - MLflow - Benefits and key features]]
@@ -39,12 +44,15 @@ The dev repository is used for running the platform on kind, a Kubernetes cluste
 The prod repository is used for running the platform on AKS (Azure Kubernetes Service) and using other cloud services.
 ## Code status
 The dev repository contains all the features. The prod one, only a part of them.
-# Infrastructure
-Below sections and documents describe infrastructure setup, that is how do we set up all the tools which we then can use for developing applications.
-## Infrastructure guide
+# Infrastructure guide
 A guide for how to set up infrastructure:
  - [[Data and ML platform project - Prod repository guide (AKS)]]
  - [[Data and ML platform - Dev repository guide - kind setup]]
+# Example workflow
+An example workflow created on this platform for data processing and developing ML models:
+- [[Data and ML platform project - Example workflow]]
+# Infrastructure
+Below sections and documents describe infrastructure setup, that is how we set up all the tools which we then can use for developing applications.
 ## Accessing services UIs
 We can access UIs of different services by using below URLs in a browser:
 - Airflow UI - `localhost:8080`
@@ -53,8 +61,8 @@ We can access UIs of different services by using below URLs in a browser:
 ## Cloud resources
 Below document explains:
 - What cloud resources we set up
-- How do we configure them
-- How do we use Terraform for that
+- How we configure them
+- How we use Terraform for that
 
 for both development on kind and production on AKS:
 - [[Data and ML platform project - Cloud resources - Prod]]
@@ -77,16 +85,19 @@ Below documents describes how this image works for both dev and prod:
 - Dev - [[Data and ML platform project - Docker image for interacting with kind]]
 
 In that container we have prepared all the tools needed, like for example `kubectl`, Helm or Azure CLI.
-## Code development
-Those documents describe how to set up environment for developing code on Kubernetes:
-- Using VS Code Kubernetes extension for this project - [[Data and ML platform project - VS Code Kubernetes extension setup for code development|link]] 
-- Code development on Kubernetes general notes - [[Data and ML platform project - Code development setup|link]] 
+## Code development & testing scripts
+Those documents explain how we can develop code on a local computer and run it on Kubernetes to test it:
+- [[Data and ML platform project - Code development & testing scripts]]
+	- [[Data and ML platform project - VS Code Kubernetes extension setup for code development]]
+	- [[Kubernetes - Code development]]
 ## Making code available in pods
 This document describes how we make code available in pods, i.e. either via git-sync or by cloning a git repo in an init container - [[Data and ML platform project - Making code available in pods]].
 ## Data storage
-This document describes data storage systems used for this platform - [[Data and ML platform project - Data storage]]
+Those documents describe data storage systems used for this platform:
+- [[Data and ML platform project - Data storage]]
+- [[Data and ML platform project - Iceberg storage framework setup]]
 ## Airflow setup
-Those documents describe how do we setup Airflow:
+Those documents describe how we setup Airflow:
 - [[Data and ML platform project - Airflow setup (prod, AKS)]]
 - [[Data and ML platform project - Airflow setup (dev, kind)]]
 ## Data transformation setup
@@ -95,13 +106,13 @@ Below sections describe how to set up tools used for data transformation:
 - dbt
 - Hive Metastore (optional, not used currently)
 ### Spark Thrift Server and Iceberg
-Those documents explain how do we set up Spark Thrift Server and Iceberg:
+Those documents explain how we set up Spark Thrift Server and Iceberg:
 - [[Data and ML platform project - Spark Thrift Server setup]]
 - [[Data and ML platform project - Spark Thrift Server setup - Details]]
 ### dbt
 This document explains how we set up dbt - [[Data and ML platform project - dbt setup]]
 ### Hive Metastore
-This document explains how do we set up Hive Metastore - [[Data and ML platform project - Hive Metastore setup]]
+This document explains how we set up Hive Metastore - [[Data and ML platform project - Hive Metastore setup]]
 
 Using Hive Metastore is optional, we don't use it currently but the code is prepared and it worked.
 #### Hive vs Iceberg
@@ -126,11 +137,6 @@ Below sections and documents describe how we can use this platform to create dat
 In this project, we created one example workflow (more info about it here - [[Data and ML platform project - Example workflow|link]]). 
 
 Next subsections describe what workflows we can create using this platform. It doesn't mean that all of that was implemented in the example workflow.
-## Platform workflow example
-An example workflow created on this platform for data processing and developing ML models:
-- [[Data and ML platform project - Example workflow]]
-## Code development & testing scripts
-This document explains how we can develop code on a local computer and run it on Kubernetes to test it - [[Data and ML platform project - Code development & testing scripts]]
 ## Common code
 In the `apps/common` folder we have a common code used by all other applications.
 ## Workflow orchestration with Airflow
@@ -144,7 +150,9 @@ Document below describes how workflow orchestration with Airflow looks like on t
 Documents about data transformation:
 - [[Data and ML platform project - Data transformation - Code and practices followed]]
 	- [[Data and ML platform project - dbt folder structure]]
-- [[Data and ML platform project - Data transformation workflow (dev, kind)]]
+- [[Data and ML platform project - Data transformation - Running dbt (dev, kind)]]
+- [[Data and ML platform project - Data transformation - Running Spark jobs]]
+- [[Data and ML platform project - Data Transformation - Running SQL queries using Thrift server and Beeline]]
 ## Data ingestion
 This document describes how we can perform data ingestion - [[Data and ML platform project - Data ingestion]]
 ## MLOps with MLflow

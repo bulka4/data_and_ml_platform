@@ -4,14 +4,16 @@ Tags: [[_My_projects]]
 # Introduction
 We can use VS Code Kubernetes extension to get access to the pod's filesystem. We can edit files and run shell commands.
 
-More info about it can be found here - [[Kubernetes code development - VS Code and Remote Kubernetes container]].
+We can create a development for and 
 # Setup
 ## VS extensions
 Install these extensions in VS Code:
 - Remote Development
 - Kubernetes
 ## Modify kubeconfig file
-Kubeconfig file (usually located at `C:\Users\username\.kube\config`) is used by VS code to connect to Kubernetes.
+VS Code uses a kubeconfig file to connect to the Kubernetes cluster.
+
+It is usually saved at `/user/.kube/config` on Linux or `C:\Users\username\.kube\config` on Windows. This is the same config file used by `kubectl` to interact with Kubernetes. 
 
 We need to modify it and change the IP address from `0.0.0.0` to `127.0.0.1` in the `clusters.cluster_name.server` field, for the kind cluster.
 ## Run the dev pod

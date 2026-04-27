@@ -16,5 +16,7 @@ On this platform we use Iceberg instead of Delta Lake so we would need to change
 - Interacting with Azure Data Lake - creating containers, folders, files, setting up permissions for accessing it
 - Incremental load logic
 - Connecting to MySQL
+# PyIceberg
+We can use PyIceberg Python library in order to ingest data into Iceberg tables.
 # Checking row counts
 During every data ingestion, we can check how many new rows we are ingesting. This can be used to detect issues, if one day we have significantly less or no new records, that might indicate some issue.

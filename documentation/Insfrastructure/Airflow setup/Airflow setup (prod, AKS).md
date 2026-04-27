@@ -1,6 +1,20 @@
 Tags: [[_My_projects]]
 #MyProjects 
 
+# Introduction
+We deploy Airflow using the official Helm chart. Thanks to that, each Airflow component runs in a separate pod:
+- Scheduler
+- Webserver
+- Workers
+- etc.
+
+PostgreSQL is used as a metadata database and is deployed separately in the same chart.
+
+Also, to make DAGs code available for Airflow components, we can:
+- Use git-sync (deployed using a separate Helm chart) which pulls code regularly
+- Mount files from the host using a PV with a `hostPath`
+
+more info about making code available in pods in general is here - [[Data and ML platform project - Making code available in pods|link]].
 # Helm chart
 To deploy Airflow on Kubernetes we use the official Helm chart. It is used as a dependency in the `helm_charts/airflow/Chart.yaml` file.
 ## values.yaml
@@ -26,7 +40,7 @@ We create a connection which uses credentials of a Service Principal with permis
 # Metadata db
 We create a PostgreSQL db for Airflow metadata using Airflow Helm chart.
 
-We do this so we don't pay for a managed service but for production it is recommended to use a managed service since running a database on Kubernetes is problematic as described here - [[Kubernetes - Running databases]].
+For production, it is worth considering using a managed Postgres service as running databases on Kubernetes has challenges as described here - [[Kubernetes - Running databases]].
 # Service account
 We create a service account which will be used by Airflow pods for creating new pods where tasks will be executed. 
 

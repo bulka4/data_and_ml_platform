@@ -3,6 +3,12 @@ Tags: [[_My_projects]]
 
 # Introduction
 dbt uses the Thrift protocol to connect to the Spark Thrift Server ([[Data and ML platform project - Spark Thrift Server setup|link]]) and send SQL queries to execute.
+# Code
+Code of the dbt project is saved in the `apps/dbt` folder. In order to run it, we can:
+- Create a development pod and run that code there as described here - [[Data and ML platform project - Data transformation workflow (dev, kind)|link]], in the "Preparing a dev pod for running dbt commands" section
+- Run it as a Kubernetes job created by Airflow - [[Data and ML platform project - dbt with Airflow|link]]
+
+More information about the code can be found here - [[Data and ML platform project - Data transformation - Code and practices followed|link]].
 ## Schema where tables will be saved
 Tables will be saved in the schema called `{project_schema}_{profiles_schema}`, where:
 - `project_schema` - schema name specified in `dbt_project.yml` file

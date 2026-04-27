@@ -5,7 +5,7 @@ Tags: [[_kind]] [[__Cloud]], [[__DevOps]], [[__Distributed_computing]], [[__Infr
 # Prepare fake external data and transform it
 Using dbt, build:
 - Tables representing data from external sources
-- Other tables by performing transformations on external sources tables
+- Other tables by performing transformations on those external sources tables
 as described in the 'Build tables using data from source1 and source2 sources' section here - [[Data and ML platform project - Data transformation workflow (dev, kind)|link]].
 # Train and save ML models
 Train ML model and save it the registry using prepared data as described here - [[Data and ML platform project - Training, evaluating and saving ML models with MLflow|link]], in the section about running MLflow projects.
