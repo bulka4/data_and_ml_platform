@@ -4,16 +4,17 @@ Tags: [[_My_projects]]
 # Introduction
 In this project we build a platform which can be used for:
 - Data ingestion - Using Python scripts
-- Data storage - Using Azure Data Lake Gen2 (object data storage)
+- Data storage - Using Azure Data Lake Gen2 (object data storage) and Iceberg
 - Distributed data transformation - Using Spark
 - MLOps - Using MLflow:
-	- Creating, validating and storing ML models
-	- Experiment tracking (keeping track of information about models we create, e.g. hyperparameters used or performance metrics)
+	- Training, evaluating and registering ML models
+	- Experiment tracking (keeping track of information about models we create, e.g. hyperparameters used or evaluation metrics)
 	- Automatic model update when performance drops
+- Workflow orchestration - Using Airflow
 
 It is designed to be deployed on Kubernetes.
 
-We also build an example data and ML pipeline using this platform.
+As a part of this project, we also build an example data and ML pipeline using this platform.
 
 Technologies used:
 - Containers and orchestration - Docker and Kubernetes
@@ -41,7 +42,7 @@ This project consists of two repositories:
 
 The dev repository is used for running the platform on kind, a Kubernetes cluster running in Docker on localhost.
 
-The prod repository is used for running the platform on AKS (Azure Kubernetes Service) and using other cloud services.
+The prod repository is used for running the platform in cloud on AKS (Azure Kubernetes Service).
 ## Code status
 The dev repository contains all the features. The prod one, only a part of them.
 # Infrastructure guide
@@ -178,6 +179,3 @@ This document describes what we can monitor and how:
 Official docs which describes tools used in this project are listed here - [[Data and ML platform project - Official docs for the tools used]]
 # To do next
 Notes about what to do next - [[Data and ML platform project - To do]] 
-# Questions
-- Is the `as_of_date` a tag assigned to a table by dbt to know when it was created?
-- 

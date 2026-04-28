@@ -3,8 +3,8 @@ Tags: [[_My_projects]]
 
 # Infrastructure
 This platform runs on Kubernetes:
-- AKS - for production
-- kind - for local development
+- AKS - cloud Kubernetes cluster for production
+- kind - a local Kubernetes cluster for development
 
 Additionally, we use cloud resources prepared by Terraform:
 - When using kind for local development ([[Data and ML platform project - Cloud resources - Dev|link]]):
@@ -16,7 +16,7 @@ Additionally, we use cloud resources prepared by Terraform:
 	- ACR - For storing Docker images
 	- Service Principal - For authentication when accessing Azure resources
 # Code development
-In order to develop code ([[Data and ML platform project - Code development & testing scripts|link]]), we can:
+In order to develop code ([[Data and ML platform project - Code development & testing scripts|link]]) which we will run on this platform, we can:
 - Create a development pod using one of the prepared Helm charts
 	- That pod will have prepared environment and we can mount to it code which we already developed
 - Connect to the created pod so we can edit files in it and run shell commands using:
