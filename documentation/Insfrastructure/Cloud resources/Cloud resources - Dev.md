@@ -7,14 +7,8 @@ This document explains infrastructure setup for development on kind for the Data
 Terraform prepares:
 - Azure Data Lake
 - Service Principal
-# Service Principal
-Terraform creates a Service Principal with permissions for saving and reading data from Azure Storage Account.
-
-It is used by many parts of the platform:
-- Airflow to save logs in Azure Storage Account
-- Spark to read and save data in Azure Storage Account
-# Storage Account
-We use Azure Storage Account (object storage) for storing:
+# Data Lake Gen2
+We use Azure Data Lake Gen2 (object storage) for storing:
 - DWH (data warehouse) data 
 	- Used for analytics and ML
 	- We use Delta Lake storage framework for that data
@@ -30,3 +24,9 @@ We have the following Storage Accounts and containers:
 - systemfilesbulka Storage Account
 	- airflow-logs container
 		- Airflow logs
+# Service Principal
+Terraform creates a Service Principal with permissions for saving and reading data from Azure Storage Account.
+
+It is used by many parts of the platform:
+- Airflow to save logs in Azure Storage Account
+- Spark to read and save data in Azure Storage Account

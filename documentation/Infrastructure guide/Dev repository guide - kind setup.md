@@ -3,8 +3,12 @@ Tags: [[_kind]] [[__Cloud]], [[__DevOps]], [[__Distributed_computing]], [[__Infr
 
 # Introduction
 This is a guide for how to set up all the infrastructure needed to run the code from this repo - [link](https://github.com/bulka4/data_and_ml_platform_kind) on a kind cluster for development.
+
+We assume here that we already have:
+- Azure account
+- Terraform, Docker and kind installed
 # Run Terraform code
-Run Terraform code to prepare cloud resources ([[Data and ML platform project - Cloud resources - Dev|link]]).
+Run Terraform code to prepare cloud resources ([[Data and ML platform project - Cloud resources - Dev|link]]) and files ([[Data and ML platform project - Preparing files with Terraform|link]]) which will be saved on the host.
 ## Prepare variables (optional)
 If we want, we can modify the `terraform.tfvars` file and assign there values to the variables. We can leave the default values.
 ## Run the code
@@ -62,9 +66,10 @@ Delete the kind cluster:
 kind delete cluster --name data-platform
 ```
 # Prepare images and Kubernetes secrets
+From inside of the image for interacting with Kubernetes:
 - Run the `/bin/sh /root/create_k8s_secrets.sh` command
 	- To create Kubernetes namespaces and secrets we will be using
-- Run the `/root/dockerfiles/build_and_load.sh` script from the image on the host (run commands from it outside of the image for interacting with kind. They require to use Docker)
+- Run commands from the `/root/dockerfiles/build_and_load.sh` script on the host (run them outside of the image for interacting with kind. They require to use Docker)
 	- It builds Docker images and loads them to kind, so they can be used to run pods
 # Installing helm charts
 - Install git-sync (optional) ([[Data and ML platform project - Making code available in pods|link]])

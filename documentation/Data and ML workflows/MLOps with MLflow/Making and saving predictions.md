@@ -31,7 +31,7 @@ To prepare data for making predictions, we use dbt to build tables:
 - Tables representing data from external sources (in the `source1`  and `source2` schemas)
 - Other tables by performing transformations on external sources tables
 
-More info about it is here - [[Data and ML platform project - Data transformation workflow (dev, kind)]].
+More info about it is here - [[Data and ML platform project - Data transformation - Running dbt (dev, kind)]].
 # Scripts for making and saving predictions
 For making and saving predictions, we can use two scripts:
 - `/apps/airflow/dags/make_predictions/make_predictions_spark_operator.py` - to be run with Spark Operator
@@ -65,6 +65,10 @@ This will create `SparkApplication` resource, Spark Operator will notice that an
 Once we install the chart, we can check logs from the execution of the Spark script we run by checking logs of the created Spark driver pod:
 ```bash
 kubectl -n spark logs pyspark-app-driver
+```
+or we can also check logs in the `SparkApplication` resource:
+```shell
+kubectl -n spark describe sparkapplication pyspark-app
 ```
 where `pyspark-app` is name of the created `SparkApplication` resource specified in its manifest.
 ## Python
